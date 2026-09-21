@@ -176,6 +176,11 @@ h1{font-family:var(--font-head);font-weight:700;font-size:clamp(38px,11vw,54px);
 .codebtn .c{font-family:ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.14em;font-size:14px}
 .codebtn:focus-visible,.arrow:focus-visible,.cta:focus-visible{outline:2px solid var(--twine-l);outline-offset:3px}
 
+.howto{margin:16px 0 0;max-width:38ch;font-size:14px;line-height:1.55;color:var(--hueso-d);opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+.howto[hidden]{display:none}
+.howto b{color:var(--hueso)}
+.howto span{display:block;margin-top:6px}
+#reveal.on .howto{opacity:1;transform:none;transition-delay:2s}
 .redeem{margin-top:16px;font-size:14px;font-weight:600;color:var(--twine-l);text-decoration:underline;text-underline-offset:4px;opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
 .redeem[hidden]{display:none}
 #reveal.on .redeem{opacity:1;transform:none;transition-delay:2.05s}
@@ -292,10 +297,11 @@ body{background-color:#2a2420!important;color:#f1ece2!important;font-family:"Mon
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v15M5 12.5l7 7 7-7"/></svg>
     </a>
     <a class="cta" id="cta" href="https://katarsishomedeco.com.ar/shop" target="_blank" rel="noopener">
-      katarsishomedeco.com.ar
+      <span id="ctaTxt">katarsishomedeco.com.ar</span>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>
     </a>
-    <a class="redeem" id="redeem" href="#" target="_blank" rel="noopener" hidden>¿Ya elegiste? Canjeá tu gift card por WhatsApp</a>
+    <p class="howto" id="howto" hidden></p>
+    <a class="redeem" id="redeem" href="#" target="_blank" rel="noopener" hidden>¿Necesitás ayuda para canjearla? Escribinos por WhatsApp</a>
     <p class="demo" id="demo" hidden>Vista de ejemplo · el monto y los nombres llegan en el link de cada regalo</p>
   </section>
 </div>
@@ -362,6 +368,11 @@ body{background-color:#2a2420!important;color:#f1ece2!important;font-family:"Mon
     var rd=$('redeem');
     rd.href='https://wa.me/5493564663869?text='+encodeURIComponent('Hola! Quiero canjear mi gift card de Katarsis.\nCódigo: '+code+'\nMonto: '+money(monto)+(de?'\nDe: '+de:'')+(para?'\nPara: '+para:''));
     rd.hidden=false;
+    $('ctaTxt').textContent='Canjear en la tienda';
+    var hw=$('howto');hw.hidden=false;hw.textContent='';
+    var p1=document.createElement('span');p1.innerHTML='<b>Cómo canjearla:</b> tocá tu código para copiarlo, elegí lo que quieras en la tienda y, al pagar, tocá “¿Tenés un cupón de descuento?” y pegalo.';
+    var p2=document.createElement('span');p2.textContent='Tu gift card es de '+money(monto)+': tu compra tiene que ser de ese monto o más. Si comprás de más, pagás solo la diferencia.';
+    hw.appendChild(p1);hw.appendChild(document.createElement('br'));hw.appendChild(p2);
   }
   if(demo)$('demo').hidden=false;
   $('arrow').href=SHOP_URL;$('cta').href=SHOP_URL;
