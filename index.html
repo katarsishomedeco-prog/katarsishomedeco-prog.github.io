@@ -76,6 +76,8 @@ button,a.btn{font:inherit;font-weight:700;font-size:16px;border-radius:999px;pad
 button:hover,a.btn:hover{transform:translateY(-1px)}
 button.primary,a.btn.primary{background:var(--hueso);color:var(--ground)}
 button:focus-visible,a.btn:focus-visible{outline:2px solid var(--twine-l);outline-offset:3px}
+.cinfo{margin:7px 2px 0;font-size:13px;color:var(--hueso-d)}
+.cinfo.ok2{color:var(--ok);font-weight:600}
 .err{margin:0;color:#f0a58a;font-size:14px;min-height:1.3em}
 
 /* resultado */
@@ -110,15 +112,11 @@ button:focus-visible,a.btn:focus-visible{outline:2px solid var(--twine-l);outlin
       <h1>Armá tu regalo</h1>
       <p class="lead">Elegí el monto, escribí para quién es y dejale un mensaje. Después copiás tu link y se lo mandás a quien quieras sorprender.</p>
       <form id="f" onsubmit="return false" novalidate>
-        <fieldset>
-          <legend>Monto</legend>
-          <div class="chips">
-            <input type="radio" name="m" id="m60" value="60000" checked><label for="m60">$60.000</label>
-            <input type="radio" name="m" id="m100" value="100000"><label for="m100">$100.000</label>
-            <input type="radio" name="m" id="mx" value="otro"><label for="mx">Otro monto</label>
-          </div>
-          <div id="otroBox" hidden style="margin-top:12px"><div class="money"><span>$</span><input type="number" id="otro" inputmode="numeric" min="1000" step="1000" placeholder="80000" aria-label="Otro monto en pesos"></div></div>
-        </fieldset>
+        <div>
+          <label class="l" for="code">Código de regalo <span class="opt">· te lo damos cuando pagás</span></label>
+          <input type="text" id="code" maxlength="26" placeholder="KAT-060-7H4Q2M-X9F3" autocomplete="off" autocapitalize="characters" spellcheck="false" style="text-transform:uppercase;letter-spacing:.08em">
+          <p class="cinfo" id="cinfo">El monto de tu gift card sale de tu código.</p>
+        </div>
         <div class="row">
           <div><label class="l" for="de">De <span class="opt">· tu nombre</span></label><input type="text" id="de" maxlength="30" placeholder="Gabriel" autocomplete="off"></div>
           <div><label class="l" for="para">Para <span class="opt">· quien recibe</span></label><input type="text" id="para" maxlength="30" placeholder="Abril" autocomplete="off"></div>
@@ -144,7 +142,7 @@ button:focus-visible,a.btn:focus-visible{outline:2px solid var(--twine-l);outlin
         <p class="ok" id="ok"></p>
         <a class="btn" id="test" href="#" target="_blank" rel="noopener">Ver cómo lo recibe</a>
       </div>
-      <p class="foot">¿Todavía no coordinaste tu gift card? <a href="https://wa.me/5493564663869?text=Hola%21%20Quiero%20pedir%20una%20gift%20card%20de%20Katarsis" target="_blank" rel="noopener">Escribinos por WhatsApp</a></p>
+      <p class="foot">¿Todavía no pagaste tu gift card? Pedila y te damos tu código: <a href="https://wa.me/5493564663869?text=Hola%21%20Quiero%20pedir%20una%20gift%20card%20de%20Katarsis" target="_blank" rel="noopener">Escribinos por WhatsApp</a></p>
     </section>
   </div>
 </div>
@@ -154,10 +152,14 @@ button:focus-visible,a.btn:focus-visible{outline:2px solid var(--twine-l);outlin
   var $=function(id){return document.getElementById(id)};
   var RECIBE=new URL('abri-tu-regalo',location.href).href;   // la página del cubo, junto a esta
   function money(n){return '$'+String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'.')}
-  function amount(){
-    var v=document.querySelector('input[name=m]:checked').value;
-    return v==='otro'?(parseInt(String($('otro').value).replace(/\D/g,''),10)||0):parseInt(v,10);
+  var SAFE='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  function parseCode(v){ // KAT-060-7H4Q2M-X9F3  ->  monto 60.000 (el código lo emite Katarsis al cobrar)
+    var r=String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(r.indexOf('KAT')===0)r=r.slice(3);
+    if(!/^\d{3}[A-Z0-9]{10}$/.test(r))return null;
+    for(var i=3;i<13;i++)if(SAFE.indexOf(r.charAt(i))<0)return null;
+    var a=parseInt(r.slice(0,3),10)*1000;return a>=1000?{raw:r,amount:a}:null;
   }
+  function amount(){var c=parseCode($('code').value);return c?c.amount:0}
   function slug(t){return String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')}
   function preview(){
     var m=amount(),t=m>=1000?money(m):'$—',w=0;
@@ -166,20 +168,21 @@ button:focus-visible,a.btn:focus-visible{outline:2px solid var(--twine-l);outlin
     $('pDe').textContent=$('de').value.trim();$('pPara').textContent=$('para').value.trim();
     var ms=$('msg').value.trim();$('pMsg').textContent=ms?'“'+ms+'”':'';
     $('cnt').textContent=$('msg').value.length;
-    $('otroBox').hidden=document.querySelector('input[name=m]:checked').value!=='otro';
+    var ok=!!parseCode($('code').value);
+    $('cinfo').textContent=ok?('Código válido · gift card de '+money(m)):'El monto de tu gift card sale de tu código.';
+    $('cinfo').className='cinfo'+(ok?' ok2':'');
   }
   function build(){
     var m=amount(),pa=slug($('para').value),de=slug($('de').value.replace(/\bde\b/gi,' ')),ms=$('msg').value.trim();
     var tok=(m%1000===0)?(m/1000)+'mil':String(m);
-    var frag=[pa,de?'de-'+de:'',tok].filter(Boolean).join('-');
+    var frag=[pa,de?'de-'+de:'',tok].filter(Boolean).join('-')+'_'+parseCode($('code').value).raw;
     if(ms)frag+='~'+encodeURIComponent(ms.replace(/~/g,' ').replace(/\s+/g,'-').replace(/-+/g,'-'));
     return RECIBE+'#'+frag;
   }
-  ['de','para','msg','otro'].forEach(function(id){$(id).addEventListener('input',function(){preview();$('result').hidden=true})});
-  document.querySelectorAll('input[name=m]').forEach(function(r){r.addEventListener('change',function(){preview();$('result').hidden=true})});
+  ['de','para','msg','code'].forEach(function(id){$(id).addEventListener('input',function(){preview();$('result').hidden=true})});
   $('f').addEventListener('submit',function(){
     var m=amount();$('err').textContent='';
-    if(!(m>=1000)){$('err').textContent='Elegí un monto de $1.000 o más.';return}
+    if(!(m>=1000)){$('err').textContent='Ingresá tu código de regalo. Lo recibís cuando pagás tu gift card; si no lo tenés, escribinos por WhatsApp.';return}
     var url=build();
     $('link').textContent=url;$('test').href=url;
     var txt='¡Tenés un regalo de Katarsis! 🎁 Abrilo acá:\n'+url;

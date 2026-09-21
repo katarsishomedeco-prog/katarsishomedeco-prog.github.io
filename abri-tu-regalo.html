@@ -176,6 +176,10 @@ h1{font-family:var(--font-head);font-weight:700;font-size:clamp(38px,11vw,54px);
 .codebtn .c{font-family:ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.14em;font-size:14px}
 .codebtn:focus-visible,.arrow:focus-visible,.cta:focus-visible{outline:2px solid var(--twine-l);outline-offset:3px}
 
+.redeem{margin-top:16px;font-size:14px;font-weight:600;color:var(--twine-l);text-decoration:underline;text-underline-offset:4px;opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+.redeem[hidden]{display:none}
+#reveal.on .redeem{opacity:1;transform:none;transition-delay:2.05s}
+.redeem:focus-visible{outline:2px solid var(--twine-l);outline-offset:3px}
 .msg,.codebtn,.worth,.arrow,.cta{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
 #reveal.on .msg{opacity:1;transform:none;transition-delay:1.2s}
 #reveal.on .codebtn{opacity:1;transform:none;transition-delay:1.3s}
@@ -291,6 +295,7 @@ body{background-color:#2a2420!important;color:#f1ece2!important;font-family:"Mon
       katarsishomedeco.com.ar
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>
     </a>
+    <a class="redeem" id="redeem" href="#" target="_blank" rel="noopener" hidden>¿Ya elegiste? Canjeá tu gift card por WhatsApp</a>
     <p class="demo" id="demo" hidden>Vista de ejemplo · el monto y los nombres llegan en el link de cada regalo</p>
   </section>
 </div>
@@ -313,6 +318,8 @@ body{background-color:#2a2420!important;color:#f1ece2!important;font-family:"Mon
       mt=mt.replace(/-/g,' ').trim();if(mt&&!p.has('t')&&!p.has('msg'))p.set('t',mt);
     }
     try{h=decodeURIComponent(h)}catch(e){}
+    var ci=h.indexOf('_');
+    if(ci>-1&&h.indexOf('=')<0){var ct=h.slice(ci+1);h=h.slice(0,ci);if(ct&&!p.has('c')&&!p.has('code'))p.set('c',ct)} // ..._0607H4Q2MX9F3 = código de regalo
     if(h&&h.indexOf('=')>-1){new URLSearchParams(h).forEach(function(v,k){if(!p.has(k))p.set(k,v)})}
     else if(h){
       // link lindo: [para]-de-[de]-[monto]  ->  abril-de-gabriel-60mil
@@ -336,7 +343,13 @@ body{background-color:#2a2420!important;color:#f1ece2!important;font-family:"Mon
   if(monto>0&&monto<1000)monto*=1000; // formato corto: m=60 significa $60.000
   var demo=!(monto>=1000&&monto<=10000000);
   if(demo)monto=60000;
-  var para=clean(get('p','para'),30), de=clean(get('d','de'),30), msg=clean(get('t','msg'),240), code=clean(get('c','code'),24).toUpperCase();
+  var para=clean(get('p','para'),30), de=clean(get('d','de'),30), msg=clean(get('t','msg'),240), code=clean(get('c','code'),26).toUpperCase();
+  // el monto sale del código (lo emite Katarsis al cobrar): un monto tocado a mano en el link no cambia lo que vale
+  var raw13=code.replace(/[^A-Z0-9]/g,'');if(raw13.indexOf('KAT')===0)raw13=raw13.slice(3);
+  if(/^\d{3}[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{10}$/.test(raw13)){
+    code='KAT-'+raw13.slice(0,3)+'-'+raw13.slice(3,9)+'-'+raw13.slice(9);
+    var cm=parseInt(raw13.slice(0,3),10)*1000;if(cm>=1000){monto=cm;demo=false}
+  }
 
   $('amount').textContent=money(monto);
   $('worth').innerHTML='Tenés <b></b> para elegir lo que más te guste en nuestra tienda.';
@@ -344,7 +357,12 @@ body{background-color:#2a2420!important;color:#f1ece2!important;font-family:"Mon
   if(de)$('introSub').textContent='De parte de '+de;
   $('de').textContent=de;$('para').textContent=para;
   if(msg){$('msg').textContent='“'+msg+'”';$('msg').hidden=false}
-  if(code){$('codeVal').textContent=code;$('codeBtn').hidden=false}
+  if(code){
+    $('codeVal').textContent=code;$('codeBtn').hidden=false;
+    var rd=$('redeem');
+    rd.href='https://wa.me/5493564663869?text='+encodeURIComponent('Hola! Quiero canjear mi gift card de Katarsis.\nCódigo: '+code+'\nMonto: '+money(monto)+(de?'\nDe: '+de:'')+(para?'\nPara: '+para:''));
+    rd.hidden=false;
+  }
   if(demo)$('demo').hidden=false;
   $('arrow').href=SHOP_URL;$('cta').href=SHOP_URL;
   $('kicker').textContent=para?('¡Feliz regalo, '+para+'!'):'¡Es todo tuyo!';
