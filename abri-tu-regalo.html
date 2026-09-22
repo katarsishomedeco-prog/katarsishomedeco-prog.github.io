@@ -310,7 +310,7 @@ body{background-color:#2a2420!important;color:#f1ece2!important;font-family:"Mon
 <script>
 (function(){
   // Dirección de la tienda: se cambia acá si algún día cambia la URL.
-  var SHOP_URL='https://katarsishomedeco.com.ar/shop';
+  var SHOP_URL='https://katarsishomedeco.com.ar/shop/';
   // Imagen de la gift card (sin monto). En la web es la de la Mediateca; en local, giftcard.jpg junto a esta página.
   var GIFT_IMG=window.KT_GIFT_IMG||'giftcard.jpg';
 
@@ -369,13 +369,15 @@ body{background-color:#2a2420!important;color:#f1ece2!important;font-family:"Mon
     rd.href='https://wa.me/5493564663869?text='+encodeURIComponent('Hola! Quiero canjear mi gift card de Katarsis.\nCódigo: '+code+'\nMonto: '+money(monto)+(de?'\nDe: '+de:'')+(para?'\nPara: '+para:''));
     rd.hidden=false;
     $('ctaTxt').textContent='Canjear en la tienda';
+
     var hw=$('howto');hw.hidden=false;hw.textContent='';
-    var p1=document.createElement('span');p1.innerHTML='<b>Cómo canjearla:</b> tocá tu código para copiarlo, elegí lo que quieras en la tienda y, al pagar, tocá “¿Tenés un cupón de descuento?” y pegalo.';
+    var p1=document.createElement('span');p1.innerHTML='<b>Cómo canjearla:</b> tocá “Canjear en la tienda” y elegí lo que quieras: tu gift card se aplica sola cuando tu compra llegue al monto. Si preferís, también podés copiar tu código y pegarlo al pagar, en “¿Tenés un cupón de descuento?”.';
     var p2=document.createElement('span');p2.textContent='Tu gift card es de '+money(monto)+': tu compra tiene que ser de ese monto o más. Si comprás de más, pagás solo la diferencia.';
     hw.appendChild(p1);hw.appendChild(document.createElement('br'));hw.appendChild(p2);
   }
   if(demo)$('demo').hidden=false;
-  $('arrow').href=SHOP_URL;$('cta').href=SHOP_URL;
+  // con código: la tienda lo guarda y lo aplica sola cuando la compra llega al monto
+  var gu=code?SHOP_URL+'?kt_gift='+encodeURIComponent(code):SHOP_URL;$('arrow').href=gu;$('cta').href=gu;
   $('kicker').textContent=para?('¡Feliz regalo, '+para+'!'):'¡Es todo tuyo!';
 
   // Gift card real: si hay giftcard.jpg al lado de esta página, se usa esa imagen
