@@ -114,6 +114,8 @@ button[hidden]{display:none}
 .title small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
 .grp{list-style:none;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:14px 8px 4px}
 .hint{list-style:none;color:var(--muted);font-size:14px;line-height:1.5;padding:14px 10px}
+.webrow{list-style:none;padding:12px 10px;color:var(--muted);font-size:13px;line-height:1.8;border-top:1px dashed #3a3a42;margin-top:8px}
+.webrow a{color:var(--accent);font-weight:700;text-decoration:none}
 </style>
 </head>
 <body>
@@ -436,7 +438,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     if(!library.length){ ul.innerHTML = '<li class="hint">La biblioteca está vacía.<br>Tocá <b>+ Importar PDF o ZIP</b> y elegí el ZIP (o los PDFs) de tus canciones.</li>'; lastResults=[]; return; }
     var searching = !!norm(q), res = results();
     lastResults = searching ? res.slice(0,80) : res;
-    if(!lastResults.length){ ul.innerHTML = '<li class="hint">No encontré “'+esc2(q)+'”.</li>'; return; }
+    if(!lastResults.length){ ul.innerHTML = '<li class="hint">No encontré “'+esc2(q)+'” en tu biblioteca.</li>'; webRow(ul); return; }
     if(hi>=lastResults.length) hi = lastResults.length-1; if(hi<0) hi = 0;
     var lastCat = null;
     lastResults.forEach(function(s,k){
@@ -455,7 +457,22 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       });
       ul.appendChild(li);
     });
+    if(searching) webRow(ul);
     if(scrollHi){ var h = ul.querySelector('.hi'); if(h) h.scrollIntoView({block:'nearest'}); }
+  }
+  function webRow(ul){
+    var qq = q.trim(); if(!qq) return;
+    var li = document.createElement('li'), enc = encodeURIComponent(qq); li.className = 'webrow';
+    if(navigator.onLine === false){
+      li.innerHTML = '¿No está “'+esc2(qq)+'”? Sin internet no se puede buscar en la web. Cuando tengas conexión: buscala, copiá el texto y guardalo con <b>+ Pegar texto</b>.';
+    } else {
+      li.innerHTML = '¿No está “'+esc2(qq)+'”? Buscala en la web, copiá el texto y guardalo:<br>'
+        + '<a target="_blank" rel="noopener" href="https://www.google.com/search?q='+enc+'+acordes+site%3Alacuerda.net">lacuerda.net</a> · '
+        + '<a target="_blank" rel="noopener" href="https://www.google.com/search?q='+enc+'+acordes+site%3Acifraclub.com">cifraclub</a> · '
+        + '<a href="#" data-paste="1">+ Pegar texto</a>';
+    }
+    li.addEventListener('click',function(e){ var a = e.target.closest && e.target.closest('a[data-paste]'); if(a){ e.preventDefault(); openModal(null,qq); } });
+    ul.appendChild(li);
   }
   function openFromLib(s){
     var searched = !!norm(q);
@@ -849,10 +866,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     names.forEach(function(n){o.push('<option value="'+n+'m">'+n+'m</option>')});
     $('mk').innerHTML = o.join('');
   })();
-  function openModal(song){
+  function openModal(song,title){
     editing = song || null;
     $('mh').textContent = song ? 'Editar canción' : 'Pegar canción';
-    $('mt').value = song ? cleanName(song.name) : '';
+    $('mt').value = song ? cleanName(song.name) : (title||'');
     $('mx').value = song ? song.text : '';
     $('mk').value = song ? (song.origKey||'') : '';
     $('modal').hidden = false; setTimeout(function(){ $('mx').focus(); },50);
