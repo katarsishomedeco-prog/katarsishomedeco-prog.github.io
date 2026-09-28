@@ -541,6 +541,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   });
 
   // ---------- PDF ----------
+  function getBuf(s){
+    if(s.buf) return Promise.resolve(s.buf.slice(0));
+    if(s.blob) return s.blob.arrayBuffer();
+    return Promise.reject(new Error('sin datos'));
+  }
   function openSong(i){
     if(i<0||i>=songs.length) return;
     current = i; try{localStorage.setItem('ultima',String(i))}catch(e){}
@@ -549,7 +554,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     $('bn').textContent = i+1; $('bt').textContent = cleanName(s.name); updZoom();
     renderList(); analysis = {};
     if(s.kind==='text'){ openText(s); return; }
-    s.blob.arrayBuffer().then(function(buf){
+    getBuf(s).then(function(buf){
       return pdfjsLib.getDocument({data:buf}).promise;
     }).then(function(d){
       if(token!==openToken) return;
@@ -565,7 +570,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       }
       keyUI(); layout(true);
     }).catch(function(err){
-      $('viewer').innerHTML='<div id="empty"><div>No pude abrir este PDF.<br>'+String(err&&err.message||err)+'</div></div>';
+      var msg = String(err&&err.message||err), lost = /not be found|NotFound|sin datos/i.test(msg+' '+(err&&err.name));
+      $('viewer').innerHTML = lost
+        ? '<div id="empty"><div>Este PDF no quedó guardado bien en este dispositivo.<br><b>Se arregla solo:</b> abrí el menú ☰, tocá <b>+ Importar PDF o ZIP</b> y elegí el ZIP de la biblioteca otra vez.</div></div>'
+        : '<div id="empty"><div>No pude abrir este PDF.<br>'+msg+'</div></div>';
     });
   }
   function layout(resetScroll){
@@ -660,8 +668,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   function setZoom(z){ zoom=Math.max(.5,Math.min(3,z)); updZoom(); toast('Zoom '+Math.round(zoom*100)+'%'); layout(false); }
 
   // ---------- Importar (PDF o ZIP) ----------
-  function extractSearch(blob){
-    return blob.arrayBuffer().then(function(buf){ return pdfjsLib.getDocument({data:buf}).promise; }).then(function(d){
+  function extractSearch(buf){
+    return pdfjsLib.getDocument({data:buf.slice(0)}).promise.then(function(d){
       var jobs = [];
       for(var n=1;n<=Math.min(d.numPages,2);n++){ jobs.push(d.getPage(n).then(function(p){ return p.getTextContent(); })); }
       return Promise.all(jobs).then(function(cs){
@@ -691,21 +699,24 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       }
     }
     if(!items.length){ toast('No encontré PDFs para importar'); return; }
-    var have = {}; library.forEach(function(s){ have[norm(s.name)+'|'+norm(s.cat||'')] = 1; });
-    var added = 0, skipped = 0;
+    var have = {}; library.forEach(function(s){ have[norm(s.name)+'|'+norm(s.cat||'')] = s; });
+    var added = 0, skipped = 0, repaired = 0;
     for(i=0;i<items.length;i++){
-      var it = items[i], key = norm(it.name)+'|'+norm(it.cat);
-      if(have[key]){ skipped++; continue; }
-      var blob = new Blob([await it.get()],{type:'application/pdf'});
-      var search = await extractSearch(blob);
-      var rec = {name:it.name, cat:it.cat, blob:blob, order:Date.now()+i, shift:0, search:search};
-      await tx('readwrite',function(st){ st.add(rec); });
-      have[key] = 1; added++;
+      var it = items[i], key = norm(it.name)+'|'+norm(it.cat), ex = have[key];
+      if(ex && ex.buf){ skipped++; continue; }
+      var buf = await (await it.get()).arrayBuffer();
+      var search = await extractSearch(buf);
+      if(ex){ ex.buf = buf; delete ex.blob; ex.search = search; await saveSong(ex); repaired++; }
+      else {
+        var rec = {name:it.name, cat:it.cat, buf:buf, order:Date.now()+i, shift:0, search:search};
+        await tx('readwrite',function(st){ st.add(rec); });
+        have[key] = {buf:1}; added++;
+      }
       if(i%5===0) toast('Importando '+(i+1)+' de '+items.length+'…');
     }
     await loadAll(); renderList();
     if(!songs.length && library.length){ view='lib'; renderList(); }
-    toast(added+' canciones agregadas'+(skipped?' ('+skipped+' ya estaban)':''));
+    toast(added+' canciones agregadas'+(repaired?', '+repaired+' reparadas':'')+(skipped?' ('+skipped+' ya estaban)':''));
   }
   $('file').addEventListener('change',function(e){
     var files = Array.prototype.slice.call(e.target.files); e.target.value='';
