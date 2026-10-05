@@ -109,6 +109,8 @@ button,label{touch-action:manipulation}
 #acts #load{background:var(--accent);color:#111;font-weight:700;text-align:center;cursor:pointer}
 #newSet{grid-column:1/3;background:transparent;color:var(--muted);border:1px dashed #3a3a42;border-radius:10px;padding:8px;font-size:12px;cursor:pointer}
 button[hidden]{display:none}
+#shareBtn,#recvBtn{grid-column:1/3;background:#26262b;color:var(--fg);border:1px solid #3a3a42;border-radius:10px;padding:9px;font-size:13px;font-weight:600;cursor:pointer}
+#shareBtn:hover,#recvBtn:hover{background:#3a3a42}
 .song.hi{background:#222226;border-color:#5a5a66}
 .song.inset .num{background:#3a3316;color:var(--accent)}
 .title small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
@@ -197,6 +199,8 @@ body.harmMode #tbar{display:none!important}
       <label id="load" for="file">+ Importar PDF o ZIP</label>
       <input id="file" type="file" accept="application/pdf,.pdf,application/zip,.zip" multiple hidden>
       <button id="pasteBtn" tabindex="-1">+ Pegar texto</button>
+      <button id="shareBtn" tabindex="-1" hidden>📲 Enviar repertorio al celu</button>
+      <button id="recvBtn" tabindex="-1">📥 Recibir repertorio</button>
       <button id="newSet" tabindex="-1" hidden>Repertorio nuevo</button>
     </div>
     <div id="keys">
@@ -604,6 +608,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     $('cSet').textContent = '('+songs.length+')'; $('cLib').textContent = '('+library.length+')';
     $('tSet').classList.toggle('on',view==='set'); $('tLib').classList.toggle('on',view==='lib');
     $('newSet').hidden = !(view==='set' && songs.length);
+    $('shareBtn').hidden = !(view==='set' && songs.length);
     if(view==='lib') renderLib(scrollHi); else renderSet();
   }
   function renderSet(){
@@ -1604,12 +1609,67 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     if(b.getAttribute('data-seq')) playSeq(b.getAttribute('data-seq').split(' ')); else playChord(b.getAttribute('data-p'));
   });
 
+  // ---------- Compartir repertorio entre aparatos ----------
+  function b64enc(str){ return btoa(unescape(encodeURIComponent(str))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+  function b64dec(b){ b = b.replace(/-/g,'+').replace(/_/g,'/'); while(b.length%4) b += '='; return decodeURIComponent(escape(atob(b))); }
+  function shareCode(){
+    var items = songs.map(function(s){ var o = {n:s.name,c:s.cat||'',k:s.origKey||'',sh:s.shift||0,v:s.variant||0}; if(s.kind==='text') o.t = s.text; return o; });
+    return b64enc(JSON.stringify({v:1,items:items}));
+  }
+  $('shareBtn').addEventListener('click',function(){
+    this.blur(); if(!songs.length) return;
+    var url = location.origin + location.pathname + '#rep=' + shareCode();
+    function fallback(){ try{ window.prompt('Copiá este código y pegalo en el celu con “Recibir repertorio”:', url); }catch(e){} }
+    if(navigator.share && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)){ navigator.share({title:'Repertorio',text:'Repertorio de Partituras en vivo',url:url}).catch(function(){}); return; }
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(function(){ toast('Copiado. En el celu: Recibir repertorio → pegar'); },fallback); } else fallback();
+  });
+  $('recvBtn').addEventListener('click',function(){
+    this.blur();
+    var v = window.prompt('Pegá acá el link o código del repertorio:','');
+    if(v) importShare(v);
+  });
+  function importShare(raw){
+    var m = /#rep=([A-Za-z0-9_\-]+)/.exec(raw), code = m ? m[1] : raw.trim(), data;
+    try{ data = JSON.parse(b64dec(code)); }catch(e){ toast('Ese código no es válido'); return; }
+    if(!data || !data.items || !data.items.length){ toast('El repertorio está vacío'); return; }
+    if(!confirm('¿Cargar el repertorio de '+data.items.length+' canciones? Reemplaza el de hoy (las canciones siguen en la biblioteca).')) return;
+    var newSet = [], missing = [], chain = Promise.resolve();
+    data.items.forEach(function(it){
+      chain = chain.then(function(){
+        var key = norm(cleanName(it.n)), found = null;
+        library.forEach(function(s){ if(norm(cleanName(s.name))===key && (!found || (s.cat||'')===(it.c||''))) found = s; });
+        function apply(s){
+          if(it.k && !s.origKey) s.origKey = it.k;
+          s.shift = it.sh||0; s.variant = it.v||0;
+          newSet.push(s); return saveSong(s);
+        }
+        if(found) return apply(found);
+        if(it.t){
+          var rec = {kind:'text',name:it.n,cat:it.c||'MIS CANCIONES (TEXTO)',text:it.t,order:Date.now(),shift:0,origKey:it.k||null,search:norm(it.n+' '+it.t).slice(0,3500)};
+          return tx('readwrite',function(st){ return st.add(rec); }).then(loadAll).then(function(){
+            var s2 = library.filter(function(x){ return x.name===it.n && x.text===it.t; })[0]; if(s2) return apply(s2);
+          });
+        }
+        missing.push(cleanName(it.n));
+      });
+    });
+    chain.then(function(){
+      songs = newSet; return saveOrder();
+    }).then(function(){
+      view = 'set'; try{ history.replaceState(null,'',location.pathname); }catch(e){}
+      renderList(); if(songs.length) openSong(0); else clearViewer();
+      toast(songs.length+' canciones cargadas'+(missing.length?' · faltan en este aparato: '+missing.join(', '):''));
+      if(missing.length) setTimeout(function(){ alert('No encontré estas canciones en este aparato (importá el ZIP de la biblioteca):\n\n'+missing.join('\n')); },600);
+    });
+  }
+
   // ---------- Inicio ----------
   loadAll().then(function(){
     if(!songs.length && library.length) view = 'lib';
     renderList();
     if(!songs.length) $('app').classList.add('showlist');
     if(songs.length){ var u=0; try{u=parseInt(localStorage.getItem('ultima')||'0',10)||0}catch(e){} openSong(Math.min(u,songs.length-1)); }
+    if(/#rep=/.test(location.hash)) setTimeout(function(){ importShare(location.hash); },500);
   });
 })();
 </script>
