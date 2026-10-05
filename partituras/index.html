@@ -160,6 +160,10 @@ body.harmMode #tbar{display:none!important}
 .ivp{display:flex;align-items:center;gap:8px;padding:4px 2px;font-size:14px;font-weight:700}
 .ivp i{width:22px;height:6px;border-radius:3px;display:inline-block}
 .ivp span{font-weight:500;color:var(--muted);font-size:13px}
+.lvl{font-size:11px;font-weight:700;border-radius:6px;padding:2px 8px}
+.lv1{background:#17381d;color:#7be28a}.lv2{background:#3a3316;color:#f5c518}.lv3{background:#3a1d17;color:#e8744a}
+.tip{font-size:13px;color:var(--muted);line-height:1.5;margin-top:6px}
+.tip b{color:var(--fg)}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
 .chip{font-size:16px;font-weight:800;padding:8px 14px}
 .chip small{display:block;font-size:10px;font-weight:600;color:var(--muted)}
@@ -247,7 +251,7 @@ body.harmMode #tbar{display:none!important}
     </div>
     <div id="viewer"><div id="empty"><div>Tu repertorio está vacío.<br><b>Apretá “/”</b> y buscá una canción para agregarla,<br>o tocá <b>Biblioteca</b> para ver todas.<br>Si todavía no cargaste tus canciones: <b>+ Importar PDF o ZIP</b>.</div></div></div>
     <div id="harm" hidden>
-      <div id="hTabs"><button data-h="vec" class="on" tabindex="-1">Acordes vecinos</button><button data-h="prog" tabindex="-1">Progresiones</button><button data-h="trans" tabindex="-1">Transiciones</button><button data-h="piano" tabindex="-1">Piano</button><button data-h="int" tabindex="-1">Intervalos</button><button data-h="circ" tabindex="-1">Círculo de quintas</button></div>
+      <div id="hTabs"><button data-h="vec" class="on" tabindex="-1">Acordes vecinos</button><button data-h="prog" tabindex="-1">Progresiones</button><button data-h="free" tabindex="-1">Estudio libre</button><button data-h="esc" tabindex="-1">Escalas</button><button data-h="trans" tabindex="-1">Transiciones</button><button data-h="piano" tabindex="-1">Piano</button><button data-h="int" tabindex="-1">Intervalos</button><button data-h="circ" tabindex="-1">Círculo de quintas</button></div>
       <div id="hBody"></div>
     </div>
   </section>
@@ -1561,11 +1565,239 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     };
     img.src = 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(xml);
   }
+  // ---------- Estudio libre: progresiones de jazz, blues, gospel, modal... ----------
+  var FREE = [
+    // GOSPEL Y WORSHIP
+    {c:'g',l:1,n:'Vaivén sobre pedal de tónica',p:'I IV/I I V/I',d:'La mano izquierda sostiene la tónica y solo se mueve la derecha. Sirve para sostener un pad durante minutos sin que se corte el clima.',t:'Izquierda: octava de la tónica. Derecha: tríadas I (1-3-5), IV (4-6-1) y V (5-7-2) con el menor movimiento posible.',s:'Pentatónica mayor / Mayor'},
+    {c:'g',l:1,n:'Cadencia del Amén',p:'I IV6 I',d:'El cierre del “Amén”. Sumar la 6ª al IV le da el color gospel de siempre.',t:'En Do: Do – Fa6 (Fa-La-Do-Re) – Do. Soltá el pedal despacio al volver al I.',s:'Pentatónica mayor'},
+    {c:'g',l:1,n:'IV menor (sombra gospel)',p:'I IV iv I',d:'El IV pasa a menor por un instante y vuelve: el giro emotivo típico de himnos y gospel.',t:'Solo cambia una nota: la 6ª del IV baja medio tono (La → Lab en Do).',s:'Mayor + 6ª menor como nota de paso'},
+    {c:'g',l:1,n:'Subida al IV con séptima',p:'I I7 IV iv I',d:'El I7 funciona como dominante del IV; después el IV menor suaviza la vuelta.',t:'Hacé que la 7ª (Sib en Do) baje por grado al 3º del IV (La).',s:'Mixolidia → Mayor'},
+    {c:'g',l:3,n:'Turnaround gospel largo',p:'I I/iii IV #iv°7 I/V VI7 ii7 V7sus4 V7',d:'El cierre clásico de las iglesias: el bajo sube por grados y cada acorde se encadena por semitonos hasta resolver.',t:'Línea de bajo: 1 – 3 – 4 – #4 – 5 – 6 – 2 – 5. Memorizá primero solo el bajo, después sumá la mano derecha.',s:'Mixolidia / Alterada sobre el último V7'},
+    {c:'g',l:2,n:'Cadencia 6/4',p:'I/V V7 I',d:'Segunda inversión del I antes del V7: el cierre solemne, típico de himnos y de final de coro.',t:'El bajo se queda en la 5ª (Sol en Do) durante los dos primeros acordes.',s:'Mayor'},
+    {c:'g',l:2,n:'Bajo descendente 1-7-6-5-4',p:'I V/vii vi V IV',d:'El bajo baja por grados mientras la melodía respira arriba. Se usa en pasajes tranquilos y en intros.',t:'Bajo: Do – Si – La – Sol – Fa. La derecha puede quedarse casi quieta.',s:'Mayor / Pentatónica mayor'},
+    {c:'g',l:1,n:'Subida de bajo hacia el V',p:'I I/iii IV V',d:'Walk-up: el bajo sube 1-3-4-5 y empuja hacia el clímax.',t:'Ideal para preparar un coro; frená en el V y dejalo respirar.',s:'Mayor'},
+    {c:'g',l:1,n:'Himno clásico',p:'I IV I/V V7 I',d:'La cadencia completa de los himnarios: tónica, subdominante, 6/4, dominante y reposo.',t:'Cuatro voces simples: bajo en la izquierda y tres notas en la derecha.',s:'Mayor'},
+    {c:'g',l:1,n:'Himno con relativo menor',p:'I vi ii V7 I',d:'Pasa por el vi y el ii antes de resolver: más movimiento sin salir del tono.',t:'Probalo en las 12 tonalidades: es la mejor forma de aprender a moverte por el teclado.',s:'Mayor'},
+    // SOUL, R&B, POP
+    {c:'s',l:2,n:'Descenso soul',p:'IVmaj9 iii7 ii9 Imaj9',d:'Cuatro acordes que bajan por grados, muy usados en soul y neo-soul. Elegante y cálido.',t:'Mantené la nota superior casi fija (la 9ª o 5ª): sentí cómo cambia el color debajo.',s:'Jónica / Lidia sobre el IV'},
+    {c:'s',l:2,n:'Resolución gospel con suspensión',p:'ii7 V7sus4 V7 Imaj9',d:'La suspensión del V retrasa la resolución y crea esa tensión que “pide” el I.',t:'Sobre el V7sus4 tocá un acorde de ii/V (Fa-Sol-Do-Re en Do) y resolvé la 4ª a la 3ª.',s:'Mixolidia'},
+    {c:'s',l:3,n:'Neo-soul con turnaround',p:'ii9 V13 Imaj9 VI7b9',d:'Acordes extendidos y un VI7b9 que “tira” de nuevo al ii: se puede repetir en loop.',t:'Voicings abiertos: fundamental en la izquierda, 3ª-7ª-9ª en la derecha.',s:'Dórica / Mixolidia / Disminuida S-T'},
+    {c:'s',l:1,n:'Corazón y alma (doo-wop)',p:'I vi IV V',d:'La progresión de los años 50 que todavía suena fresca.',t:'Probala en tresillos (12/8) para el clásico feel de balada.',s:'Pentatónica mayor'},
+    {c:'s',l:2,n:'Menor con paso a la relativa mayor',p:'i7 iv7 bVII7 bIIImaj7',d:'Empieza en menor y termina en el acorde mayor relativo: pasa de sombra a luz.',t:'En La menor: Am7 – Dm7 – G7 – Cmaj7. Es un ii–V–I disfrazado.',s:'Eólica → Jónica del relativo'},
+    // JAZZ
+    {c:'j',l:2,n:'ii–V–I mayor',p:'ii7 V7 Imaj7',d:'La base del jazz. Si dominás esta, entendés la mitad del repertorio.',t:'Voice leading: la 7ª del ii baja a la 3ª del V, y la 7ª del V baja a la 3ª del I.',s:'Dórica – Mixolidia – Jónica'},
+    {c:'j',l:3,n:'ii–V–I con extensiones',p:'ii9 V13 Imaj9',d:'Misma cadencia con 9ª y 13ª: suena a jazz moderno y gospel.',t:'Dejá la fundamental para el bajo (o no la toques) y concentrate en 3ª, 7ª y tensiones.',s:'Dórica – Mixolidia – Lidia'},
+    {c:'j',l:2,n:'ii–V–i menor',p:'iiø V7b9 i6',d:'La cadencia menor: el ii es semidisminuido y el V lleva b9.',t:'Sobre el V7b9 funciona muy bien la escala disminuida semitono-tono.',s:'Locria #2 – Frigia dominante / Alterada – Menor melódica'},
+    {c:'j',l:2,n:'Turnaround I–vi–ii–V',p:'Imaj7 vi7 ii7 V7',d:'El “ciclo” que vuelve al inicio. Es el motor de infinidad de estándares.',t:'Cada raíz baja una quinta (o sube una cuarta): practicalo por ciclo de quintas en las 12 tonalidades.',s:'Jónica – Eólica – Dórica – Mixolidia'},
+    {c:'j',l:2,n:'Turnaround iii–VI–ii–V',p:'iii7 VI7 ii7 V7',d:'Cadena de dominantes: cada acorde “empuja” al siguiente.',t:'El VI7 pide la nota b13 o b9 si querés más tensión.',s:'Frigia – Mixolidia b13 – Dórica – Mixolidia'},
+    {c:'j',l:3,n:'Turnaround Dameron',p:'Imaj7 bIIImaj7 bVImaj7 bIImaj7',d:'Acordes mayores separados por terceras menores: un clásico del bebop.',t:'En Do: Cmaj7 – Ebmaj7 – Abmaj7 – Dbmaj7. Resuelve al ii–V final.',s:'Lidia sobre cada maj7'},
+    {c:'j',l:3,n:'Cambios de ritmo (sección A)',p:'Imaj7 VI7 | ii7 V7 | iii7 VI7 | ii7 V7',d:'Progresión de “I Got Rhythm”, base de cientos de temas. Se toca rápido y con swing.',t:'Empezá lento con solo la fundamental y la 7ª de cada acorde (guide tones).',s:'Jónica – Mixolidia b13 – Dórica – Mixolidia'},
+    {c:'j',l:3,n:'Puente de cambios de ritmo',p:'III7 | VI7 | II7 | V7',d:'Cuatro dominantes consecutivos en ciclo de quintas, dos compases cada uno.',t:'Cada dominante resuelve al siguiente: tocá la 3ª y la 7ª con el menor movimiento posible.',s:'Mixolidia / Alterada'},
+    {c:'j',l:3,n:'Ciclo de quintas diatónico',p:'Imaj7 | IVmaj7 | viiø | iii7 | vi7 | ii7 | V7 | Imaj7',d:'Recorre todos los acordes del tono en cuartas descendentes. Gran ejercicio para memorizar tonalidades.',t:'Cada acorde comparte dos notas con el anterior: seguí la nota común.',s:'Jónica – Lidia – Locria – Frigia – Eólica – Dórica – Mixolidia'},
+    {c:'j',l:2,n:'Hojas de otoño',p:'ii7 | V7 | Imaj7 | IVmaj7 | viiø | III7 | vi7',d:'Dos cadencias seguidas: hacia el mayor y hacia el relativo menor. Estructura típica de estándar.',t:'El III7 es dominante del vi: usá la b9 y la b13 para dramatizar.',s:'Dórica – Mixolidia – Jónica – Lidia – Locria – Alterada – Menor melódica'},
+    {c:'j',l:3,n:'Sustitución tritonal',p:'ii7 bII7 Imaj7',d:'El bII7 comparte el tritono con el V7: suena más cromático y moderno.',t:'La bajada cromática del bajo (Re – Reb – Do) es la gran ventaja.',s:'Lidia dominante sobre el bII7'},
+    {c:'j',l:3,n:'ii–V trasero (backdoor)',p:'iv7 bVII7 Imaj7',d:'Un camino alternativo al I que viene “por la puerta de atrás”: más suave que el V7.',t:'En Do: Fm7 – Bb7 – Cmaj7. El Bb7 se toca como Mixolidia o Lidia dominante.',s:'Dórica – Mixolidia / Lidia dominante'},
+    {c:'j',l:2,n:'Cliché de línea menor',p:'i i(maj7) i7 i6',d:'Un acorde menor se queda quieto mientras una voz baja cromáticamente. Suena a película negra.',t:'Voz superior que baja: 1 – 7 – b7 – 6 sobre el mismo acorde de bajo.',s:'Menor melódica / Dórica'},
+    {c:'j',l:3,n:'Bossa nova (Ipanema)',p:'Imaj7 | II7 | ii7 | bII7',d:'Cadencia que alterna acordes un tono arriba y semitono abajo: sonido bossa clásico.',t:'Mano izquierda: bajo y quinta (ritmo bossa). Derecha: voicings de 4 notas.',s:'Lidia sobre el II7 – Dórica – Lidia dominante'},
+    {c:'j',l:2,n:'Blue Bossa',p:'i7 | iv7 | iiø V7b9 | i7',d:'Una de las progresiones menores más tocadas en jam sessions.',t:'Sobre el iiø V7b9 podés hacer una cadencia “menor” completa y volver al i.',s:'Dórica – Locria #2 – Frigia dominante'},
+    {c:'j',l:3,n:'Disminuido de paso',p:'Imaj7 #i°7 ii7 V7',d:'El acorde disminuido conecta el I con el ii por semitono.',t:'El #i°7 comparte notas con el V7b9 del ii: es un dominante disfrazado.',s:'Disminuida T-S'},
+    {c:'j',l:3,n:'Giant Steps (simplificado)',p:'Imaj7 bIII7 | bVImaj7 VII7 | IIImaj7',d:'Tres centros tonales separados por terceras mayores. El gran desafío de Coltrane.',t:'Estudialo primero como tríadas; después sumá séptimas. Empezá a 60 BPM.',s:'Jónica + Mixolidia en cada centro'},
+    {c:'j',l:3,n:'Cadena de dominantes',p:'III7 VI7 II7 V7 Imaj7',d:'Cuatro dominantes en cadena que desembocan en el I. Efecto de “cascada”.',t:'Cada dominante es el V7 del siguiente: dejá libre la nota b9 o #9 en cada uno.',s:'Alterada / Disminuida S-T'},
+    // BLUES
+    {c:'b',l:1,n:'Blues de 12 compases',p:'I7 | I7 | I7 | I7 | IV7 | IV7 | I7 | I7 | V7 | IV7 | I7 | V7',d:'La forma más importante de todas. Cada compás es un acorde de séptima dominante.',t:'Mano izquierda con shuffle (1-5-6-5), derecha con pentatónica menor + blue note.',s:'Pentatónica menor + blue note / Pentatónica mayor'},
+    {c:'b',l:1,n:'Blues con cambio rápido',p:'I7 | IV7 | I7 | I7 | IV7 | IV7 | I7 | I7 | V7 | IV7 | I7 | V7',d:'Igual, pero el segundo compás va al IV7: más movimiento.',t:'Alterná el feel entre shuffle y straight para variar.',s:'Pentatónica menor y mayor'},
+    {c:'b',l:3,n:'Blues de jazz',p:'I7 | IV7 | I7 | v7 I7 | IV7 | #iv°7 | I7 | VI7 | ii7 | V7 | I7 VI7 | ii7 V7',d:'Blues sofisticado de bebop: ii–V rápidos y cromatismos.',t:'En el compás 9–12 hacé un ii–V–I–VI7 completo.',s:'Bebop dominante / Mixolidia'},
+    {c:'b',l:2,n:'Blues menor',p:'i7 | i7 | i7 | i7 | iv7 | iv7 | i7 | i7 | bVI7 | V7 | i7 | V7',d:'Cambia el color a oscuro; el bVI7 y el V7 arman un final dramático.',t:'Escalá sobre el bVI7 con Lidia dominante y sobre el V7 con la menor armónica (Frigia dominante).',s:'Pentatónica menor / Dórica / Frigia dominante'},
+    {c:'b',l:2,n:'Blues gospel',p:'I7 | IV7 | I7 | I7 | IV7 | iv7 | I7 | VI7 | ii7 | V7 | I7 | V7',d:'Blues con IV menor y turnaround final: sonido “iglesia”.',t:'Tocá los acordes con 6ª y 9ª para suavizarlos. Usá repetidos de cuartas en la derecha.',s:'Pentatónica mayor + blue note'},
+    {c:'b',l:1,n:'Blues de 8 compases',p:'I7 | V7 | IV7 | IV7 | I7 | V7 | I7 | V7',d:'Forma más corta y muy cantable.',t:'Ideal para improvisar con pocas notas: dos o tres bien puestas.',s:'Pentatónica menor y mayor'},
+    {c:'b',l:2,n:'Turnaround ascendente',p:'I7 bIII7 IV7 bV7 V7',d:'Cierre cromático que sube y lleva a un nuevo ciclo.',t:'El bajo sube 1 – b3 – 4 – b5 – 5. Es el “walk-up” de blues.',s:'Blues menor'},
+    {c:'b',l:2,n:'Turnaround clásico',p:'I7 VI7 ii7 V7',d:'Los últimos dos compases del blues de jazz, convertidos en cierre.',t:'Tocalo con swing y dejá el V7 colgado para volver al inicio.',s:'Bebop dominante'},
+    // MODAL / AMBIENTE
+    {c:'m',l:1,n:'Vamp dórico',p:'i7 IV7',d:'Dos acordes que se mecen: Santana, jazz modal y pad ambiental.',t:'Improvisá solo con la escala dórica sobre toda la sección. Usá la 6ª mayor como nota clave.',s:'Dórica'},
+    {c:'m',l:1,n:'Vamp mixolidio',p:'I bVII IV I',d:'Sonido de rock y gospel suave: la b7 da el aire mixolidio.',t:'Funciona muy bien con arpegios abiertos en la derecha.',s:'Mixolidia'},
+    {c:'m',l:1,n:'Vamp lidio',p:'Imaj7 II Imaj7 II',d:'La 4ª aumentada flota: sonido de cine y de asombro.',t:'Dejá el #4 como nota larga y resolvé a la 5ª.',s:'Lidia'},
+    {c:'m',l:1,n:'Vamp frigio',p:'i bII i bII',d:'Sonido español y oscuro, muy dramático.',t:'Usá la b2 como nota de color y volvé siempre a la tónica.',s:'Frigia'},
+    {c:'m',l:1,n:'Vamp eólico',p:'i bVII bVI bVII',d:'Menor natural en movimiento: base de pop y worship oscuro.',t:'Ideal para construir dinámicas: empezá suave y subí octava.',s:'Eólica'},
+    {c:'m',l:2,n:'Épica (intercambio modal)',p:'I bVI bVII I',d:'Los acordes bVI y bVII, prestados de la menor, dan grandeza épica.',t:'Cuando llega el bVII, abrí el voicing y subí el volumen.',s:'Mixolidia b6 / Mayor'},
+    {c:'m',l:2,n:'Pedal de tónica',p:'I IV/I bVII/I IV/I',d:'La tónica se queda en el bajo mientras el color cambia arriba. El mejor recurso para fluir solo.',t:'Izquierda: octava de la tónica. Derecha: tríadas I, IV, bVII y IV.',s:'Mixolidia / Pentatónica mayor'},
+    {c:'m',l:2,n:'Sus y quintas (pad quartal)',p:'Isus2 IVsus2 Vsus4 Isus2',d:'Acordes suspendidos, sin tercera: suenan abiertos y ambiguos, perfectos para fondo.',t:'Pedal de sustain a fondo y manos separadas por dos octavas.',s:'Pentatónica mayor'},
+    {c:'m',l:2,n:'Ambiente con maj9',p:'Imaj9 iii7 IVmaj9 V7sus4',d:'Acordes con 9ª que suben de grado: serenos y luminosos.',t:'Dejá sonar la voz superior como línea melódica.',s:'Lidia / Jónica'},
+    {c:'m',l:2,n:'Elevación modal',p:'I bIII bVII IV',d:'Mezcla de mayor y menor que se siente como una ola ascendente.',t:'En Do: Do – Mib – Sib – Fa. Probalo en todas las tonalidades.',s:'Mixolidia / Eólica según el acorde'},
+    // LATINO
+    {c:'l',l:1,n:'Cadencia andaluza',p:'i bVII bVI V',d:'La cadencia más famosa del flamenco y de la música latina.',t:'En La menor: Am – G – F – E. Ritmo en 3+3+2 funciona genial.',s:'Frigia dominante / Eólica'},
+    {c:'l',l:2,n:'Frigio flamenco',p:'i bII bIII bII',d:'Alterna medio tono arriba y abajo del centro: puro sabor español.',t:'La derecha toca tríadas mayores y la izquierda marca la raíz.',s:'Frigia dominante'},
+    {c:'l',l:2,n:'Bossa II–V',p:'Imaj7 | VI7 | ii7 | V7',d:'Compás de bossa con un VI7 que lleva al ii.',t:'Marcá el patrón: bajo, quinta, acorde sincopado.',s:'Jónica – Mixolidia b13 – Dórica – Mixolidia'},
+    {c:'l',l:1,n:'Montuno',p:'I IV V IV',d:'Base de salsa y música tropical: tres acordes que se repiten.',t:'Mano derecha con octavas sincopadas (guajeo).',s:'Mixolidia / Pentatónica mayor'},
+    {c:'l',l:2,n:'Tango',p:'i iv V7 i',d:'Cadencia menor armónica: dramática y exacta.',t:'Fraseá con rubato y acentos en el V7.',s:'Menor armónica'},
+    // CADENCIAS
+    {c:'c',l:1,n:'Auténtica',p:'V7 I',d:'La más fuerte: dominante a tónica.',t:'Ideal para cerrar. Dejá sonar el I con pedal.',s:'Mixolidia'},
+    {c:'c',l:1,n:'Plagal',p:'IV I',d:'Suave, “amén”.',t:'El 6º del IV da el color gospel.',s:'Mayor'},
+    {c:'c',l:1,n:'Plagal con IV menor',p:'iv I',d:'Más emotiva que la plagal normal.',t:'La nota b6 baja a 5.',s:'Eólica → Mayor'},
+    {c:'c',l:1,n:'Engañosa',p:'V7 vi',d:'Parece que va al I y termina en el vi.',t:'Sorpresa útil para alargar una frase.',s:'Mixolidia → Eólica'},
+    {c:'c',l:2,n:'Semicadencia',p:'I ii V',d:'Termina en el V y “queda abierta”: pide continuar.',t:'Útil al final de la primera frase.',s:'Mayor'},
+    {c:'c',l:2,n:'Cadencia frigia',p:'i iv/bVI V',d:'Cierre abierto muy típico del barroco y del flamenco.',t:'El bajo baja medio tono hasta el V.',s:'Frigia / Menor armónica'},
+    {c:'c',l:3,n:'Napolitana',p:'i bII/IV V7 i',d:'El bII en primera inversión antes del V7: solemne y dramática.',t:'En Do menor: Cm – Db/F – G7 – Cm.',s:'Menor armónica'},
+    {c:'c',l:2,n:'Tercera de Picardía',p:'i iv V7 I',d:'Termina en tónica mayor desde un tono menor: luz inesperada.',t:'La 3ª sube medio tono en el último acorde.',s:'Menor armónica → Mayor'},
+    {c:'c',l:3,n:'Cadencia tritonal',p:'bII7 I',d:'Sustituye al V7 con el bII7: suena más cromática.',t:'Dos movimientos de semitono: bajo y 7ª.',s:'Lidia dominante'}
+  ];
+  var FCATS = [['all','Todas'],['g','Gospel y worship'],['s','Soul y pop'],['j','Jazz'],['b','Blues'],['m','Modal y ambiente'],['l','Latino'],['c','Cadencias']];
+  var LVL = {1:'Básico',2:'Intermedio',3:'Avanzado'};
+  var RN_IDX = ['i','ii','iii','iv','v','vi','vii'], MJ_OFF = [0,2,4,5,7,9,11];
+  function parseFree(tok,pc,keyFlats){
+    var m = /^([♭b#]?)(VII|VI|IV|V|III|II|I|vii|vi|iv|v|iii|ii|i)(ø|°|dim)?(.*?)(?:\/([♭b#]?)(VII|VI|IV|V|III|II|I|vii|vi|iv|v|iii|ii|i))?$/.exec(tok); if(!m) return null;
+    var idx = RN_IDX.indexOf(m[2].toLowerCase()), lower = m[2]===m[2].toLowerCase(), acc = m[1]||'';
+    var off = MJ_OFF[idx] + (/[♭b]/.test(acc)?-1:(acc==='#'?1:0)), suf = m[4]||'', q;
+    if(m[3]==='ø') q = 'm7b5'+suf; else if(m[3]) q = 'dim'+suf; else q = (lower?'m':'')+suf;
+    var fl = /[♭b]/.test(acc) ? true : (acc==='#' ? false : keyFlats);
+    var name = nameOf(pc+off,false,fl)+q;
+    if(m[6]){
+      var bacc = m[5]||'', bo = MJ_OFF[RN_IDX.indexOf(m[6].toLowerCase())] + (/[♭b]/.test(bacc)?-1:(bacc==='#'?1:0));
+      name += '/' + nameOf(pc+bo,false,/[♭b]/.test(bacc)?true:(bacc==='#'?false:keyFlats));
+    }
+    var dom = !lower && !m[3] && !/maj|M7/.test(suf) && /7|9|13/.test(suf), o = ((off%12)+12)%12, col;
+    if(dom) col = o===0 ? FCOL.t : (o===5 ? FCOL.s : FCOL.d);
+    else col = FCOL[{0:'t',4:'t',9:'t',5:'s',2:'s',7:'d',11:'d'}[o]||'x'];
+    return {c:name,col:col,sub:tok};
+  }
+  function freeRows(p,pc){
+    var firstLower = /^[♭b#]?(vii|vi|iv|v|iii|ii|i)/.test(p.p.trim());
+    var keyFlats = hFlats(pc,firstLower), hasBars = p.p.indexOf('|')>=0;
+    var bars = p.p.split('|').map(function(b){ return b.trim().split(/\s+/).filter(Boolean); }).filter(function(b){ return b.length; });
+    var rows = [];
+    if(hasBars){
+      for(var i=0;i<bars.length;i+=4){
+        var items = []; bars.slice(i,i+4).forEach(function(b){ b.forEach(function(t){ var it = parseFree(t,pc,keyFlats); if(it) items.push(it); }); });
+        rows.push({label:'compases '+(i+1)+'–'+Math.min(i+4,bars.length), items:items});
+      }
+    } else {
+      var all = bars[0].map(function(t){ return parseFree(t,pc,keyFlats); }).filter(Boolean);
+      for(var j=0;j<all.length;j+=6) rows.push({items:all.slice(j,j+6)});
+    }
+    return rows;
+  }
+  function noteBar(){
+    var h = '<div class="kb"><span>Tonalidad</span>';
+    KEYN.forEach(function(n,i){ h += '<button data-kp="'+i+'" class="'+(H.pc===i?'on':'')+'" tabindex="-1">'+n+'</button>'; });
+    return h + '</div>';
+  }
+  function tabFree(){
+    var cat = H.fcat || 'all', h = '<div class="hcard"><div class="hh">Estudio libre <small>progresiones para tocar solo, fluir en un instrumental o improvisar</small></div>'
+      + '<div class="hnote">No dependen de tus canciones. Elegí la tonalidad, la categoría y practicá cada progresión: primero lenta, con las manos separadas; después en las 12 tonalidades. Cada una trae <b>nivel</b>, una <b>idea de cómo tocarla</b> y la <b>escala</b> para improvisar encima (mirá la pestaña Escalas).</div>'
+      + '<div class="kb">';
+    FCATS.forEach(function(c){ h += '<button data-fc="'+c[0]+'" class="'+(cat===c[0]?'on':'')+'" tabindex="-1">'+c[1]+'</button>'; });
+    h += '</div></div>';
+    var n = 0;
+    FREE.forEach(function(p){
+      if(cat!=='all' && p.c!==cat) return; n++;
+      var rows = freeRows(p,H.pc), list = []; rows.forEach(function(r){ r.items.forEach(function(it){ list.push(it.c); }); });
+      h += '<div class="hcard"><div class="hh">'+esc2(p.n)+' <span class="lvl lv'+p.l+'">'+LVL[p.l]+'</span> <button class="cc-play" data-seq="'+esc2(list.join(' '))+'" tabindex="-1">🔊 Escuchar</button></div>'
+        + '<div class="hnote">'+esc2(p.d)+'</div>'+rowsSVG(rows)
+        + '<div class="tip">💡 '+esc2(p.t)+'</div><div class="tip">🎼 Escala para improvisar: <b>'+esc2(p.s)+'</b></div></div>';
+    });
+    h += '<div class="hcard"><div class="hh">Ideas de reharmonización <small>en '+KEYN[H.pc]+'</small></div><div class="hnote">'
+      + '<b>Sustitución tritonal:</b> cambiá el V7 por el bII7 (ej. '+nameOf(H.pc+7,false,hFlats(H.pc,false))+'7 → '+nameOf(H.pc+1,false,true)+'7). Comparten el tritono.<br>'
+      + '<b>Dominante secundario:</b> antes de cualquier acorde diatónico, poné su V7 (ej. '+nameOf(H.pc+9,false,hFlats(H.pc,false))+'7 antes del ii).<br>'
+      + '<b>Disminuido de paso:</b> entre el I y el ii, ponés un #i°7 ('+nameOf(H.pc+1,false,false)+'dim7).<br>'
+      + '<b>Intercambio modal:</b> tomá acordes de la menor paralela: bIII, bVI, bVII y iv ('+nameOf(H.pc+5,false,true)+'m, '+nameOf(H.pc+8,false,true)+', '+nameOf(H.pc+10,false,true)+').<br>'
+      + '<b>Pedal:</b> mantené la tónica en el bajo y cambiá los acordes arriba (slash chords: IV/I, V/I, bVII/I).<br>'
+      + '<b>Tensiones:</b> sumá 9ª, 11ª y 13ª a los acordes; en dominantes probá b9, #9, #11, b13.</div></div>';
+    h += '<div class="hcard"><div class="hh">Cómo estudiar esto <small>plan de práctica</small></div><div class="hnote">'
+      + '1. Elegí <b>una</b> progresión y tocala lenta (60 BPM) con manos separadas.<br>'
+      + '2. Aprendé solo el <b>bajo</b> y las notas guía (3ª y 7ª).<br>'
+      + '3. Sumá la melodía con la escala sugerida: dos notas por acorde, sin apuro.<br>'
+      + '4. Pasala a las <b>12 tonalidades</b> siguiendo el círculo de quintas.<br>'
+      + '5. Grabate improvisando 2 minutos y escuchá qué notas funcionan.<br>'
+      + '6. Cambiá el ritmo (shuffle, balada, bossa) sin cambiar los acordes.</div></div>';
+    return h;
+  }
+
+  // ---------- Escalas y modos ----------
+  var SCALES = [
+    {g:'Modos de la mayor',n:'Mayor (jónica)',iv:[0,2,4,5,7,9,11],u:'La base de todo. Suena estable y luminosa.',ch:'Imaj7, I6, Imaj9, IVmaj7 (sin 4ª sobre el I)'},
+    {g:'Modos de la mayor',n:'Dórica',iv:[0,2,3,5,7,9,10],u:'Menor con 6ª mayor: sonido jazzístico y moderno. Evita la tristeza “clásica”.',ch:'m7, m9, m11, m6 (ii de la mayor)'},
+    {g:'Modos de la mayor',n:'Frigia',iv:[0,1,3,5,7,8,10],u:'Menor con 2ª menor: sonido español y oscuro.',ch:'m7 (iii), sus4b9'},
+    {g:'Modos de la mayor',n:'Lidia',iv:[0,2,4,6,7,9,11],u:'Mayor con 4ª aumentada: luminosa y flotante, sonido de cine.',ch:'maj7#11 (IV de la mayor)'},
+    {g:'Modos de la mayor',n:'Mixolidia',iv:[0,2,4,5,7,9,10],u:'Mayor con 7ª menor: sonido de rock, gospel y dominante.',ch:'7, 9, 13, sus4 (V de la mayor)'},
+    {g:'Modos de la mayor',n:'Eólica (menor natural)',iv:[0,2,3,5,7,8,10],u:'La menor “de siempre”: melancólica.',ch:'m7, m(add9) (vi de la mayor)'},
+    {g:'Modos de la mayor',n:'Locria',iv:[0,1,3,5,6,8,10],u:'Menor con 2ª menor y 5ª disminuida: inestable.',ch:'m7b5 (vii de la mayor)'},
+    {g:'Menores y dominantes',n:'Menor armónica',iv:[0,2,3,5,7,8,11],u:'Menor con 7ª mayor: tensión clásica, tango y música árabe.',ch:'m(maj7), V7b9 de la menor'},
+    {g:'Menores y dominantes',n:'Menor melódica (jazz)',iv:[0,2,3,5,7,9,11],u:'Menor con 6ª y 7ª mayores: sonido jazz, la más usada para m(maj7).',ch:'m(maj7), m6'},
+    {g:'Menores y dominantes',n:'Dórica b2',iv:[0,1,3,5,7,9,10],u:'Dórica con 2ª menor: tensa y misteriosa.',ch:'m7sus4b9'},
+    {g:'Menores y dominantes',n:'Lidia aumentada',iv:[0,2,4,6,8,9,11],u:'Lidia con 5ª aumentada: muy brillante.',ch:'maj7#5'},
+    {g:'Menores y dominantes',n:'Lidia dominante',iv:[0,2,4,6,7,9,10],u:'Dominante con #11: la que se usa en el bII7 tritonal.',ch:'7#11, bII7, bVII7'},
+    {g:'Menores y dominantes',n:'Mixolidia b6',iv:[0,2,4,5,7,8,10],u:'Dominante con 13ª menor: tensión típica de los V7 de menor.',ch:'7b13 (V7 → i)'},
+    {g:'Menores y dominantes',n:'Locria #2',iv:[0,2,3,5,6,8,10],u:'Locria más amable: la escala del ii de menor.',ch:'m7b5 (iiø)'},
+    {g:'Menores y dominantes',n:'Alterada (super-locria)',iv:[0,1,3,4,6,8,10],u:'Todas las tensiones alteradas: b9, #9, b5, #5. Máximo drama sobre dominantes.',ch:'7alt, 7b9, 7#9, 7b5, 7#5'},
+    {g:'Menores y dominantes',n:'Frigia dominante',iv:[0,1,4,5,7,8,10],u:'Dominante con b9 y b13: flamenco, árabe, V7 de menor armónica.',ch:'7b9, 7b9b13'},
+    {g:'Pentatónicas y blues',n:'Pentatónica mayor',iv:[0,2,4,7,9],u:'Cinco notas sin “errores”. Ideal para gospel, country y worship.',ch:'Sobre cualquier acorde mayor (I, IV, V)'},
+    {g:'Pentatónicas y blues',n:'Pentatónica menor',iv:[0,3,5,7,10],u:'La base del rock y el blues.',ch:'Sobre acordes menores y dominantes de blues'},
+    {g:'Pentatónicas y blues',n:'Blues menor',iv:[0,3,5,6,7,10],u:'Pentatónica menor + “blue note” (b5).',ch:'I7, IV7, V7 en blues'},
+    {g:'Pentatónicas y blues',n:'Blues mayor',iv:[0,2,3,4,7,9],u:'Pentatónica mayor + b3: dulce y gospel.',ch:'I7, IV7, V7 en blues y gospel'},
+    {g:'Simétricas y otras',n:'Disminuida (tono–semitono)',iv:[0,2,3,5,6,8,9,11],u:'Ocho notas simétricas: sobre acordes disminuidos.',ch:'dim7'},
+    {g:'Simétricas y otras',n:'Disminuida (semitono–tono)',iv:[0,1,3,4,6,7,9,10],u:'Dominante con b9, #9, #11 y 13: jazz moderno.',ch:'7b9, 7#9, 7#11'},
+    {g:'Simétricas y otras',n:'Tonos enteros',iv:[0,2,4,6,8,10],u:'Seis notas equidistantes: flotante y onírica.',ch:'7#5, aug, 7b5'},
+    {g:'Simétricas y otras',n:'Bebop dominante',iv:[0,2,4,5,7,9,10,11],u:'Mixolidia + 7ª mayor de paso: permite frases en corcheas sin chocar.',ch:'7, 9, 13'},
+    {g:'Simétricas y otras',n:'Bebop mayor',iv:[0,2,4,5,7,8,9,11],u:'Mayor + b6 de paso: frases fluidas sobre maj7 y 6.',ch:'maj7, 6'},
+    {g:'Simétricas y otras',n:'Doble armónica (bizantina)',iv:[0,1,4,5,7,8,11],u:'Dos segundas aumentadas: sonido árabe y oriental.',ch:'Acordes mayores con b2'},
+    {g:'Simétricas y otras',n:'Cromática',iv:[0,1,2,3,4,5,6,7,8,9,10,11],u:'Las doce notas: para pasar entre acordes y aproximaciones.',ch:'Notas de paso'}
+  ];
+  var DEG = ['1','b2','2','b3','3','4','b5','5','b6','6','b7','7'];
+  var TET = {'0,4,7,11':['maj7','t'],'0,4,7,10':['7','d'],'0,3,7,10':['m7','s'],'0,3,6,10':['m7b5','x'],'0,3,6,9':['dim7','x'],'0,3,7,11':['m(maj7)','x'],'0,4,8,11':['maj7#5','x'],'0,4,8,10':['7#5','d'],'0,4,6,10':['7b5','d'],'0,4,6,11':['maj7b5','t'],'0,3,6,11':['dim(maj7)','x']};
+  function scaleChords(sc,pc,fl){
+    if(sc.iv.length!==7) return null;
+    var out = [];
+    for(var i=0;i<7;i++){
+      var a = sc.iv[i], rel = [0,(sc.iv[(i+2)%7]-a+12)%12,(sc.iv[(i+4)%7]-a+12)%12,(sc.iv[(i+6)%7]-a+12)%12], t = TET[rel.join(',')];
+      var diff = a-MJ_OFF[i], rn = ['I','II','III','IV','V','VI','VII'][i];
+      if(t && (/^m(?!aj)/.test(t[0]) || /dim/.test(t[0]))) rn = rn.toLowerCase();
+      out.push({c: nameOf(pc+a,false,fl)+(t?t[0]:''), col: t?FCOL[t[1]]:'#7ec8ff', sub:(diff<0?'b':diff>0?'#':'')+rn});
+    }
+    return out;
+  }
+  function tabScales(){
+    var pc = H.pc, sel = Math.min(H.sc||0,SCALES.length-1), sc = SCALES[sel], hasMin = sc.iv.indexOf(3)>=0 && sc.iv.indexOf(4)<0, fl = hFlats(pc,hasMin);
+    var h = '<div class="hcard"><div class="hh">Escalas y modos <small>elegí una escala y mirala en tu tonalidad</small></div><div class="hnote">Una escala es el “mapa” de notas que funciona sobre un acorde. Cada modo es la misma escala empezando en otro grado. Practicalas ascendiendo y descendiendo, con ritmo parejo, y escuchá su carácter.</div>';
+    var last = '';
+    SCALES.forEach(function(s,i){
+      if(s.g!==last){ if(last) h += '</div>'; h += '<div class="hnote" style="margin-top:8px"><b>'+s.g+'</b></div><div class="kb">'; last = s.g; }
+      h += '<button data-sc="'+i+'" class="'+(i===sel?'on':'')+'" tabindex="-1">'+esc2(s.n)+'</button>';
+    });
+    h += '</div></div>';
+    var notes = sc.iv.map(function(x){ return nameOf(pc+x,false,fl); });
+    var piano = sc.iv.map(function(x,i){ return {a:pc+x,t:i===0?'r':'n'}; }); piano.push({a:pc+12,t:'r'});
+    var midis = sc.iv.map(function(x){ return 60+pc+x; }); midis.push(72+pc);
+    h += '<div class="hcard"><div class="hh">'+esc2(sc.n)+' en '+nameOf(pc,false,fl)+' <button class="cc-play" data-notes="'+midis.join(' ')+'" tabindex="-1">🔊 Escuchar</button></div>'
+      + '<div class="hnote"><b>Notas:</b> '+notes.join(' – ')+'<br><b>Grados:</b> '+sc.iv.map(function(x){return DEG[x];}).join(' ')+'<br><b>Carácter:</b> '+esc2(sc.u)+'<br><b>Se usa sobre:</b> '+esc2(sc.ch)+'</div>'
+      + pianoFromNotes(piano,fl)+'<div class="cc-leg"><span style="color:#f5c518">●</span> tónica · <span style="color:#7ec8ff">●</span> notas de la escala</div></div>';
+    var ch = scaleChords(sc,pc,fl);
+    if(ch){
+      h += '<div class="hcard"><div class="hh">Acordes que arma esta escala <small>cuatriadas por terceras</small></div>'+rowsSVG([{items:ch.slice(0,4)},{items:ch.slice(4)}])
+        + '<div class="cc-leg"><span style="color:'+FCOL.t+'">●</span> maj7 · <span style="color:'+FCOL.s+'">●</span> m7 · <span style="color:'+FCOL.d+'">●</span> 7 · <span style="color:'+FCOL.x+'">●</span> m7b5 / dim / m(maj7)</div></div>';
+    }
+    h += '<div class="hcard"><div class="hh">¿Qué escala toco sobre cada acorde?</div><div class="hnote">'
+      + '<b>Imaj7:</b> Jónica o Lidia (si querés el #11).<br><b>IVmaj7:</b> Lidia.<br><b>ii7 / m7:</b> Dórica.<br><b>iii7:</b> Frigia.<br><b>vi7:</b> Eólica.<br>'
+      + '<b>V7 → Imaj7:</b> Mixolidia (o Mixolidia b13 / Alterada para más tensión).<br><b>V7 → i:</b> Frigia dominante, Alterada o Disminuida S-T.<br>'
+      + '<b>bII7 (tritonal):</b> Lidia dominante.<br><b>iiø (m7b5):</b> Locria o Locria #2.<br><b>dim7:</b> Disminuida T-S.<br><b>m(maj7):</b> Menor melódica o armónica.<br>'
+      + '<b>maj7#5:</b> Lidia aumentada.<br><b>7#5:</b> Tonos enteros.<br><b>Blues (I7 IV7 V7):</b> Pentatónica menor + blue note, o pentatónica mayor.<br><b>Sus4:</b> Mixolidia o pentatónica mayor.</div></div>';
+    return h;
+  }
+  function playNotes(list){
+    var ac = audio(); if(!ac){ toast('Este navegador no permite sonido'); return; }
+    var t0 = ac.currentTime + 0.05;
+    list.forEach(function(m,i){
+      var f = 440*Math.pow(2,(m-69)/12), t = t0 + i*0.3;
+      [['triangle',1,.5],['sine',2,.15]].forEach(function(p){
+        var o = ac.createOscillator(), g = ac.createGain(); o.type = p[0]; o.frequency.value = f*p[1];
+        g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(p[2],t+.02); g.gain.exponentialRampToValueAtTime(.001,t+.9);
+        o.connect(g); g.connect(master || ac.destination); o.start(t); o.stop(t+1);
+      });
+    });
+  }
   function renderHarm(){
     var tabs = ['vec','prog','trans','piano','circ'];
     Array.prototype.forEach.call(document.querySelectorAll('#hTabs button'),function(b){ b.classList.toggle('on',b.getAttribute('data-h')===H.tab); });
-    var h = (H.tab==='trans'||H.tab==='piano'||H.tab==='int') ? '' : keyBar();
-    h += H.tab==='vec' ? tabVec() : H.tab==='prog' ? tabProg() : H.tab==='trans' ? tabTrans() : H.tab==='piano' ? tabPiano() : H.tab==='int' ? tabInt() : tabCirc();
+    var h = (H.tab==='trans'||H.tab==='piano'||H.tab==='int') ? '' : ((H.tab==='free'||H.tab==='esc') ? noteBar() : keyBar());
+    h += H.tab==='vec' ? tabVec() : H.tab==='prog' ? tabProg() : H.tab==='trans' ? tabTrans() : H.tab==='piano' ? tabPiano() : H.tab==='int' ? tabInt() : H.tab==='free' ? tabFree() : H.tab==='esc' ? tabScales() : tabCirc();
     var body = $('hBody'), top = body.scrollTop; body.innerHTML = h; body.scrollTop = top;
   }
   function setMode(m){
@@ -1586,6 +1818,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     if((el = t.closest('[data-kp]'))){ H.pc = parseInt(el.getAttribute('data-kp'),10); renderHarm(); return; }
     if((el = t.closest('[data-km]'))){ H.minor = el.getAttribute('data-km')==='1'; H.sel = 0; renderHarm(); return; }
     if((el = t.closest('[data-kuse]'))){ var s = songs[current], k = s && songKey(s); if(k){ H.pc = k.pc; H.minor = k.minor; H.sel = 0; renderHarm(); toast('Tono de “'+cleanName(s.name)+'”'); } else toast('Abrí una canción con tono definido'); return; }
+    if((el = t.closest('[data-fc]'))){ H.fcat = el.getAttribute('data-fc'); renderHarm(); return; }
+    if((el = t.closest('[data-sc]'))){ H.sc = parseInt(el.getAttribute('data-sc'),10); renderHarm(); return; }
+    if((el = t.closest('.cc-play[data-notes]'))){ playNotes(el.getAttribute('data-notes').split(' ').map(Number)); return; }
     if((el = t.closest('.cc-play'))){ if(el.getAttribute('data-seq')) playSeq(el.getAttribute('data-seq').split(' ')); else if(el.getAttribute('data-p')) playChord(el.getAttribute('data-p')); return; }
     if((el = t.closest('g[data-d]'))){ H.sel = parseInt(el.getAttribute('data-d'),10); var S = sc(H.minor); playChord(degChord(S,H.sel,H.pc,hFlats(H.pc,H.minor))); renderHarm(); return; }
     if((el = t.closest('g[data-cm]'))){ var i = parseInt(el.getAttribute('data-cm'),10); H.pc = PCN[CIRC_M[i]]; H.minor = false; H.sel = 0; playChord(CIRC_M[i]); renderHarm(); return; }
