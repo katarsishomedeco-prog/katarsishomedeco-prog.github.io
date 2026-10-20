@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="icon-192.png">
 <title>Partituras en vivo</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0e0e10">
@@ -203,6 +204,13 @@ body.harmMode #tbar{display:none!important}
 .sp-tip{font-size:13px;color:var(--muted);line-height:1.45;margin:4px 0}
 .sp-tip b{color:var(--fg)}
 @media (max-width:600px){ .sp-row{grid-template-columns:24px 1fr auto} .sp-row input{grid-column:2 / 3;grid-row:2} .sp-row a{grid-row:1 / 3;grid-column:3} }
+
+@media (max-width:860px){ #vw .vb{flex-wrap:wrap} #vw .vb button{padding:10px 12px} }
+@media (max-width:600px){ .sp-row a{white-space:normal;padding:7px 8px;font-size:12px} }
+.mbox textarea,.mbox select,.mbox input,.sp-row input,#kw select{font-size:16px}
+#toast{white-space:normal;max-width:90vw;text-align:center}
+@media (pointer:coarse){ #songs .act button, #songs li button{min-width:40px;min-height:40px} .hrow button,.kb button{min-height:40px} }
+#keys summary{cursor:pointer;color:var(--muted);font-size:13px;padding:2px 0}
 </style>
 </head>
 <body>
@@ -223,7 +231,7 @@ body.harmMode #tbar{display:none!important}
       <button id="spListBtn" tabindex="-1" hidden>🎧 Lista para Spotify</button>
       <button id="newSet" tabindex="-1" hidden>Repertorio nuevo</button>
     </div>
-    <div id="keys">
+    <details id="keys"><summary>Atajos del teclado</summary>
       <b>/</b> buscar canción · <b>Enter</b> agregarla<br>
       <b>1</b>–<b>9</b> y <b>0</b> (=10): abrir canción<br>
       <b>←</b> <b>→</b>: canción anterior / siguiente<br>
@@ -234,7 +242,7 @@ body.harmMode #tbar{display:none!important}
       <b>N</b> cambiar versión (progresión alternativa) · botón <b>♪</b> en cada canción<br>
       <b>+</b> <b>−</b> <b>R</b>: zoom · <b>I</b>: invertir colores<br>
       <b>L</b>: ocultar lista · <b>F</b>: pantalla completa
-    </div>
+    </details>
   </aside>
   <section id="main">
     <div id="modeBar"><span class="msw"><button data-m="song" class="on" tabindex="-1">Partituras</button><button data-m="harm" tabindex="-1">Armonía</button></span></div>
@@ -257,7 +265,7 @@ body.harmMode #tbar{display:none!important}
           <button tabindex="-1" data-v="0">Original</button>
           <button tabindex="-1" data-v="1">Ambiente</button>
           <button tabindex="-1" data-v="2">Vecinos</button>
-          <button tabindex="-1" data-v="3">Pedal</button>
+          <button tabindex="-1" data-v="3">Bajo fijo</button>
           <button tabindex="-1" data-v="n">Siguiente<kbd>N</kbd></button>
           <button tabindex="-1" data-v="g">Diagrama</button>
         </span>
@@ -367,10 +375,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   var S_SH = ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
   var S_FL = ['Do','Reb','Re','Mib','Mi','Fa','Solb','Sol','Lab','La','Sib','Si'];
   var ACC = '[#b♯♭]';
-  var SUF = '(?:maj|min|dim|aug|sus|add|omit|no|m|M|[0-9]|[#b♯♭+°º\u00d8\u00f8\u2205\u00c6\u00e6()])*';
+  var SUF = '(?:maj|min|dim|aug|sus|add|omit(?=[0-9])|no(?=[0-9])|m|M|[0-9]|[#b♯♭+°º\u00d8\u00f8\u2205\u00c6\u00e6()])*';
   var ROOT = '(Do|Re|Mi|Fa|Sol|La|Si|[A-G])';
   var CH = new RegExp('^'+ROOT+'('+ACC+'?)('+SUF+')(?:/'+ROOT+'('+ACC+'?))?$');
-  var NEUTRAL = /^(?:[-–—|\/\\.,:;()%]+|x\d+|\d+x)$/i;
+  var NEUTRAL = /^(?:[-–—|\/\\.,:;()%]+|\(?x\d+\)?|\(?\d+x\)?)$/i;
 
   function pcOf(root,acc){
     var b = LET[root]; if(b===undefined) b = SOL[root];
@@ -380,7 +388,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   function nameOf(pc,solfege,flats){ return (solfege?(flats?S_FL:S_SH):(flats?N_FL:N_SH))[((pc%12)+12)%12]; }
   // ---------- Versiones alternativas (acordes vecinos, ambiente, pedal) ----------
   var VAR = null;   // {v, key, minor} mientras se dibuja una canci\u00f3n con versi\u00f3n activa
-  var VNAMES = ['Original','Ambiente','Vecinos','Pedal'];
+  var VNAMES = ['Original','Ambiente','Vecinos','Bajo fijo'];
   var VDESC = ['',
     'Mismas funciones con m\u00e1s color: acordes mayores \u2192 add9, menores \u2192 m7.',
     'Cada acorde se cambia por su vecino (comparten 2 notas): I\u2194vi, IV\u2194ii. En menor: i\u2194III, iv\u2194VI.',
@@ -399,18 +407,25 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       var d = ((rp-key)%12+12)%12;
       var tab = minor ? {0:[3,''],3:[0,'m'],5:[8,''],8:[5,'m']} : {0:[9,'m'],9:[0,''],5:[2,'m'],2:[5,'']};
       var t = tab[d];
-      if(t && !special){
-        var ext = /7|9|11|13/.test(rest) ? (t[1]==='m' ? '7' : 'maj7') : (/6/.test(rest) ? '6' : '');
+      var domLike = !isMin && /^(7|9|11|13)/.test(rest);
+      if(t && !special && isMin===(t[1]!=='m') && !domLike){
+        var ext = /7|9|11|13/.test(rest) ? (t[1]==='m' ? '7' : 'maj7') : (/6/.test(rest) ? (t[1]==='m' ? '7' : '6') : '');
         out = nm(key+t[0]) + t[1] + ext;
       } else if(bp!==null) out += '/'+nm(bp);
     } else if(v===3){
       if(bp!==null) out += '/'+nm(bp);
-      else if(rp!==key) out += '/'+nm(key);
+      else if(rp!==key){
+        var dd = ((rp-key)%12+12)%12,
+            okq = minor ? {3:'',5:'m',7:'m',8:'',10:''} : {2:'m',4:'m',5:'',7:'',9:'m',10:''};
+        if(okq[dd]!==undefined && okq[dd]===(isMin?'m':'') && !/dim|aug|[°ºøØ]/.test(suf)
+           && !(dd!==7 && !isMin && /^(7|9|13)/.test(rest))) out += '/'+nm(key);
+      }
     } else if(bp!==null) out += '/'+nm(bp);
     return out;
   }
   function tChord(tok,shift,flats){
     var m = CH.exec(tok); if(!m) return tok;
+    if(!flats && /^(?:[A-G]|Do|Re|Mi|Fa|Sol|La|Si)[b♭]/.test(tok)) flats = true;
     var solf = m[1].length>1, suf = (m[3]||'').replace(/[\u00c6\u00e6]/g,'\u00f8');
     var rp = pcOf(m[1],m[2])+shift, bp = m[4] ? pcOf(m[4],m[5])+shift : null;
     if(VAR && VAR.v) return varChord(rp,suf,bp,solf,flats);
@@ -444,7 +459,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     var level = ext ? parseInt(ext,10) : 0;
     if(level){
       iv.push(hasMaj7 ? 11 : (isDim ? 9 : 10));
-      if(level>=9) iv.push(14); if(level>=11) iv.push(17); if(level>=13) iv.push(21);
+      if(level>=9) iv.push(14); if(level>=11){ if(level===11 && !hasMaj7 && iv.indexOf(4)>=0) iv.splice(iv.indexOf(4),1); if(!(level>=13 && iv.indexOf(4)>=0)) iv.push(17); } if(level>=13) iv.push(21);
       extra.push(hasMaj7 ? ('7ª mayor'+(level>7?' / '+level+'ª':'')) : (level===7?'7ª':level+'ª'));
     } else if(/6/.test(s2)){ iv.push(9); extra.push('6ª'); }
     adds.forEach(function(n){ iv.push({2:2,4:5,9:14,11:17,13:21}[n]||n); extra.push('add'+n); });
@@ -458,14 +473,43 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     iv = iv.filter(function(x,i,a){ return a.indexOf(x)===i; }).sort(function(a,b){return a-b;});
     return {root:root,bass:bass,iv:iv,desc:base+(extra.length?' · '+extra.join(' · '):'')};
   }
+  // ---------- Deletreo correcto de notas (por letra, no por semitono) ----------
+  var LETRAS = 'CDEFGAB', LPC = [0,2,4,5,7,9,11], SOLF2L = {Do:'C',Re:'D',Mi:'E',Fa:'F',Sol:'G',La:'A',Si:'B'};
+  var SEMI2DEG = {0:1,1:2,2:2,3:3,4:3,5:4,6:5,7:5,8:5,9:6,10:7,11:7,13:9,14:9,15:9,16:9,17:11,18:11,20:13,21:13,22:13};
+  function accStr(a){ return /[#♯]/.test(a||'') ? '#' : (/[b♭]/.test(a||'') ? 'b' : ''); }
+  function spellChordMap(c,ci){
+    var m = CH.exec(c); if(!m || !ci) return null;
+    var L = SOLF2L[m[1]] || m[1].charAt(0).toUpperCase(), li = LETRAS.indexOf(L); if(li<0) return null;
+    var map = {}, dim7 = /dim7|°7|º7/.test(c) || (/dim|°|º/.test(c) && /7/.test(c) && !/[øØ]/.test(c));
+    var sharp11 = /[#♯+]11|[#♯]4/.test(c);
+    ci.iv.forEach(function(x){
+      var pc = ((ci.root + x) % 12 + 12) % 12, deg = SEMI2DEG[x];
+      if(x===0){ map[pc] = L + accStr(m[2]); return; }
+      if(x===9 && dim7) deg = 7;
+      if(x===6 && sharp11) deg = 4;
+      if(!deg || map[pc]!==undefined) return;
+      var idx = (li + deg - 1) % 7, d = ((pc - LPC[idx] + 18) % 12) - 6;
+      if(d < -1 || d > 1) return;                         // doble alteración: dejar el nombre simple
+      var nm1 = LETRAS.charAt(idx) + (d>0 ? '#' : (d<0 ? 'b' : ''));
+      map[pc] = {Cb:'B',Fb:'E','E#':'F','B#':'C'}[nm1] || nm1;
+    });
+    if(ci.bass!==null && m[4]){ var bl = SOLF2L[m[4]] || m[4].charAt(0).toUpperCase(); map[ci.bass] = bl + accStr(m[5]); }
+    return map;
+  }
+  function chordFlatsFallback(c,ci){
+    var m = CH.exec(c); if(!m) return false;
+    var a = accStr(m[2]); if(a) return a==='b';
+    return hFlats(ci.root, /^(m(?!aj)|min)/.test(m[3]||''));
+  }
   var KW = 22, KH = 118, BH = 72;
-  function pianoSVG(ci,flats){
+  function pianoSVG(ci,flats,labels){
     var rootAbs = ci.root + (ci.bass!==null ? 12 : 0), notes = [];
     if(ci.bass!==null) notes.push({a:ci.bass,t:'b'});
     ci.iv.forEach(function(x,i){ notes.push({a:rootAbs+x,t:i===0?'r':'n'}); });
-    return pianoFromNotes(notes,flats);
+    return pianoFromNotes(notes,flats,labels);
   }
-  function pianoFromNotes(notes,flats){
+  function pianoFromNotes(notes,flats,labels){
+    var lab0 = function(pc){ return (labels && labels[pc]) || nameOf(pc,false,flats); };
     while(notes.some(function(n){return n.a>=36;})) notes.forEach(function(n){ if(n.a>=24) n.a -= 12; });
     var maxA = Math.max.apply(null,notes.map(function(n){return n.a;})), oct = Math.max(2,Math.ceil((maxA+1)/12));
     var byA = {}; notes.forEach(function(n){ byA[n.a] = n; });
@@ -474,12 +518,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     for(var o=0;o<oct;o++) WHITE.forEach(function(pc){
       var a = o*12+pc, n = byA[a], x = (o*7+WIDX[pc])*KW;
       g.push('<rect x="'+x+'" y="0" width="'+KW+'" height="'+KH+'" fill="'+(n?col[n.t]:'#fff')+'" stroke="#333" stroke-width="1"/>');
-      if(n) lab.push('<text x="'+(x+KW/2)+'" y="'+(KH-8)+'" text-anchor="middle" font-size="11" font-weight="700" fill="#111">'+nameOf(pc,false,flats)+'</text>');
+      if(n) lab.push('<text x="'+(x+KW/2)+'" y="'+(KH-8)+'" text-anchor="middle" font-size="11" font-weight="700" fill="#111">'+lab0(pc)+'</text>');
     });
     for(var o2=0;o2<oct;o2++) [1,3,6,8,10].forEach(function(pc){
       var a = o2*12+pc, n = byA[a], x = (o2*7+BEF[pc])*KW+KW-8;
       g.push('<rect x="'+x+'" y="0" width="16" height="'+BH+'" rx="2" fill="'+(n?col[n.t]:'#111')+'" stroke="#000" stroke-width="1"/>');
-      if(n) lab.push('<text x="'+(x+8)+'" y="'+(BH-8)+'" text-anchor="middle" font-size="9" font-weight="700" fill="#111">'+nameOf(pc,false,flats)+'</text>');
+      if(n) lab.push('<text x="'+(x+8)+'" y="'+(BH-8)+'" text-anchor="middle" font-size="9" font-weight="700" fill="#111">'+lab0(pc)+'</text>');
     });
     return '<svg viewBox="0 0 '+w+' '+KH+'" style="width:100%;height:auto;display:block">'+g.join('')+lab.join('')+'</svg>';
   }
@@ -494,11 +538,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     var html = '';
     list.forEach(function(c){
       var ci = chordInfo(c); if(!ci) return;
-      var flats = /^[A-G]b|^(Reb|Mib|Solb|Lab|Sib)|\/[A-G]b/.test(c);
-      var names = (ci.bass!==null?[ci.bass]:[]).concat(ci.iv.map(function(x){return ci.root+x;})).map(function(p){return nameOf(p,false,flats);});
+      var flats = chordFlatsFallback(c,ci), sm = spellChordMap(c,ci);
+      var nmf = function(p){ p = ((p%12)+12)%12; return (sm && sm[p]) || nameOf(p,false,flats); };
+      var names = (ci.bass!==null?[ci.bass]:[]).concat(ci.iv.map(function(x){return ci.root+x;})).map(nmf);
       names = names.filter(function(x,i,a){return a.indexOf(x)===i;});
-      html += '<div class="cc-item"><div class="cc-name">'+esc2(c)+' <button class="cc-play" tabindex="-1" data-p="'+esc2(c)+'">🔊</button> <small>'+esc2(ci.desc)+(ci.bass!==null?' · bajo '+nameOf(ci.bass,false,flats):'')+'</small></div>'
-        + pianoSVG(ci,flats) + '<div class="cc-notes">'+names.join(' · ')+'</div></div>';
+      html += '<div class="cc-item"><div class="cc-name">'+esc2(c)+' <button class="cc-play" tabindex="-1" data-p="'+esc2(c)+'">🔊</button> <small>'+esc2(ci.desc)+(ci.bass!==null?' · bajo '+nmf(ci.bass):'')+'</small></div>'
+        + pianoSVG(ci,flats,sm) + '<div class="cc-notes">'+names.join(' · ')+'</div></div>';
     });
     $('ccBody').innerHTML = html; card.hidden = false;
   }
@@ -632,6 +677,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
   function esc2(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function renderList(scrollHi){
+    if(current>=0 && current<songs.length) $('bn').textContent = current+1;
     $('cSet').textContent = '('+songs.length+')'; $('cLib').textContent = '('+library.length+')';
     $('tSet').classList.toggle('on',view==='set'); $('tLib').classList.toggle('on',view==='lib');
     $('newSet').hidden = !(view==='set' && songs.length);
@@ -1044,7 +1090,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   $('q').addEventListener('keydown',function(e){
     if(e.key==='ArrowDown'){ hi = Math.min(hi+1,lastResults.length-1); renderList(true); e.preventDefault(); }
     else if(e.key==='ArrowUp'){ hi = Math.max(hi-1,0); renderList(true); e.preventDefault(); }
-    else if(e.key==='Enter'){ var r = lastResults[hi]; if(r) openFromLib(r); e.preventDefault(); }
+    else if(e.key==='Enter'){ var r = lastResults[hi]; if(r) openFromLib(r); this.blur(); e.preventDefault(); }
     else if(e.key==='Escape'){ this.value=''; q=''; view='set'; this.blur(); renderList(); }
   });
   $('tSet').addEventListener('click',function(){ view='set'; renderList(); this.blur(); });
@@ -1074,13 +1120,13 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     if(e.metaKey||e.ctrlKey||e.altKey) return;
     if(e.key==='Escape' && !$('chordCard').hidden){ hideChord(); e.preventDefault(); return; }
     if(document.body.classList.contains('harmMode')) return;
-    var tg = e.target && e.target.tagName; if(tg==='INPUT'||tg==='TEXTAREA'||tg==='SELECT'||!$('modal').hidden) return;
+    var tg = e.target && e.target.tagName; if(tg==='INPUT'||tg==='TEXTAREA'||tg==='SELECT'||!$('modal').hidden||!$('spModal').hidden) return;
     var k=e.key, v=$('viewer'), step=Math.round(v.clientHeight*0.88);
-    if(/^[0-9]$/.test(k)){ var n = k==='0'?10:parseInt(k,10); if(n<=songs.length){ openSong(n-1); } else toast('No hay canción '+n); e.preventDefault(); return; }
+    if(/^[0-9]$/.test(k)){ var n = k==='0'?10:parseInt(k,10); if(n<=songs.length){ if(n-1!==current) openSong(n-1); } else toast('No hay canción '+n); e.preventDefault(); return; }
     var sh = current>=0 ? (songs[current].shift||0) : 0;
     switch(k){
-      case 'ArrowRight': openSong(Math.min(songs.length-1,current+1)); break;
-      case 'ArrowLeft':  openSong(Math.max(0,current-1)); break;
+      case 'ArrowRight': if(current<songs.length-1) openSong(current+1); break;
+      case 'ArrowLeft':  if(current>0) openSong(current-1); break;
       case 'ArrowDown':  v.scrollBy({top:150,behavior:'smooth'}); break;
       case 'ArrowUp':    v.scrollBy({top:-150,behavior:'smooth'}); break;
       case ' ':          v.scrollBy({top:e.shiftKey?-step:step,behavior:'smooth'}); break;
@@ -1305,7 +1351,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   var PROGS_MIN = [
     ['i VI III VII','El equivalente menor de la más usada.'],
     ['i VII VI VII','Vaivén oscuro: versos con tensión.'],
-    ['i iv v i','Cadencia menor clásica.'],
+    ['i iv v i','Cadencia menor natural (modal).'],
     ['i iv VII III','Sube hacia la relativa mayor y vuelve.'],
     ['i VI VII i','Épica: sirve para construir un coro.'],
     ['VI VII i','Dos pasos al reposo: puente o tag final.']];
@@ -1402,7 +1448,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       + '<div class="hnote">Tocá cualquier círculo para ponerlo en el centro y ver sus vecinos. <b>Izquierda (línea punteada)</b>: acordes que comparten 2 notas con el del centro; podés cambiar uno por otro sin que se note el salto. <b>Derecha (flechas)</b>: a dónde suele ir.</div>'
       + '<div class="hrow"><button class="cc-play" data-p="'+esc2(curName)+'" tabindex="-1">🔊 '+esc2(curName)+'</button></div></div>';
     var ci = chordInfo(curName);
-    h += '<div class="hcard"><div class="hh">Cómo se toca <b>'+esc2(curName)+'</b></div>'+pianoSVG(ci,fl)+'</div>';
+    h += '<div class="hcard"><div class="hh">Cómo se toca <b>'+esc2(curName)+'</b></div>'+pianoSVG(ci,fl,spellChordMap(curName,ci))+'</div>';
     var ex = '<div class="hcard"><div class="hh">Más colores (prestados y dominantes secundarios)</div><div class="chips">';
     S.extra.forEach(function(e){ var c = nameOf(pc+e.o,false,fl)+e.q; ex += '<button class="chip" data-c="'+esc2(c)+'" style="border-color:'+FCOL.x+'" tabindex="-1">'+esc2(c)+'<small>'+esc2(e.rn)+'</small></button>'; });
     ex += '</div></div>';
@@ -1483,13 +1529,14 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     h += '</select><span>Bajo</span><select data-pb="1"><option value="-1">—</option>'; KEYN.forEach(function(n,i){ h += '<option value="'+i+'"'+(P.bass===i?' selected':'')+'>'+n+'</option>'; });
     h += '</select><button class="cc-play" data-p="'+esc2(name)+'" tabindex="-1">🔊 '+esc2(name)+'</button></div></div>';
     if(!ci) return h;
-    var nn = ci.iv.map(function(x){return nameOf(ci.root+x,false,fl);});
-    h += '<div class="hcard"><div class="hh">'+esc2(name)+' <small>'+esc2(ci.desc)+' · '+nn.join(' – ')+'</small></div>'+pianoSVG(ci,fl)+'</div>';
+    var smx = spellChordMap(name,ci), nmx = function(pp){ pp=((pp%12)+12)%12; return (smx&&smx[pp])||nameOf(pp,false,fl); };
+    var nn = ci.iv.map(function(x){return nmx(ci.root+x);});
+    h += '<div class="hcard"><div class="hh">'+esc2(name)+' <small>'+esc2(ci.desc)+' · '+nn.join(' – ')+'</small></div>'+pianoSVG(ci,fl,smx)+'</div>';
     if(P.bass<0){
       var base = ci.iv.filter(function(x){return x<12;}).slice(0,4);
       for(var k=1;k<base.length;k++){
         var notes = base.map(function(x,j){ return {a:ci.root+x+(j<k?12:0), t:x===0?'r':'n'}; });
-        h += '<div class="hcard"><div class="hh">'+k+'ª inversión <small>'+esc2(name)+'/'+nameOf(ci.root+base[k],false,fl)+'</small></div>'+pianoFromNotes(notes,fl)+'</div>';
+        h += '<div class="hcard"><div class="hh">'+k+'ª inversión <small>'+esc2(name)+'/'+nmx(ci.root+base[k])+'</small></div>'+pianoFromNotes(notes,fl,smx)+'</div>';
       }
     }
     return h + '<div class="cc-leg"><span style="color:#f5c518">●</span> fundamental · <span style="color:#7ec8ff">●</span> notas del acorde · <span style="color:#e8744a">●</span> bajo</div>';
@@ -1593,7 +1640,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     // GOSPEL Y WORSHIP
     {c:'g',l:1,n:'Vaivén sobre pedal de tónica',p:'I IV/I I V/I',d:'La mano izquierda sostiene la tónica y solo se mueve la derecha. Sirve para sostener un pad durante minutos sin que se corte el clima.',t:'Izquierda: octava de la tónica. Derecha: tríadas I (1-3-5), IV (4-6-1) y V (5-7-2) con el menor movimiento posible.',s:'Pentatónica mayor / Mayor'},
     {c:'g',l:1,n:'Cadencia del Amén',p:'I IV6 I',d:'El cierre del “Amén”. Sumar la 6ª al IV le da el color gospel de siempre.',t:'En Do: Do – Fa6 (Fa-La-Do-Re) – Do. Soltá el pedal despacio al volver al I.',s:'Pentatónica mayor'},
-    {c:'g',l:1,n:'IV menor (sombra gospel)',p:'I IV iv I',d:'El IV pasa a menor por un instante y vuelve: el giro emotivo típico de himnos y gospel.',t:'Solo cambia una nota: la 6ª del IV baja medio tono (La → Lab en Do).',s:'Mayor + 6ª menor como nota de paso'},
+    {c:'g',l:1,n:'IV menor (sombra gospel)',p:'I IV iv I',d:'El IV pasa a menor por un instante y vuelve: el giro emotivo típico de himnos y gospel.',t:'Solo cambia una nota: la 3ª del IV (La, que es el 6º grado de Do) baja medio tono: La → Lab.',s:'Mayor + 6ª menor como nota de paso'},
     {c:'g',l:1,n:'Subida al IV con séptima',p:'I I7 IV iv I',d:'El I7 funciona como dominante del IV; después el IV menor suaviza la vuelta.',t:'Hacé que la 7ª (Sib en Do) baje por grado al 3º del IV (La).',s:'Mixolidia → Mayor'},
     {c:'g',l:3,n:'Turnaround gospel largo',p:'I I/iii IV #iv°7 I/V VI7 ii7 V7sus4 V7',d:'El cierre clásico de las iglesias: el bajo sube por grados y cada acorde se encadena por semitonos hasta resolver.',t:'Línea de bajo: 1 – 3 – 4 – #4 – 5 – 6 – 2 – 5. Memorizá primero solo el bajo, después sumá la mano derecha.',s:'Mixolidia / Alterada sobre el último V7'},
     {c:'g',l:2,n:'Cadencia 6/4',p:'I/V V7 I',d:'Segunda inversión del I antes del V7: el cierre solemne, típico de himnos y de final de coro.',t:'El bajo se queda en la 5ª (Sol en Do) durante los dos primeros acordes.',s:'Mayor'},
@@ -1603,7 +1650,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     {c:'g',l:1,n:'Himno con relativo menor',p:'I vi ii V7 I',d:'Pasa por el vi y el ii antes de resolver: más movimiento sin salir del tono.',t:'Probalo en las 12 tonalidades: es la mejor forma de aprender a moverte por el teclado.',s:'Mayor'},
     // SOUL, R&B, POP
     {c:'s',l:2,n:'Descenso soul',p:'IVmaj9 iii7 ii9 Imaj9',d:'Cuatro acordes que bajan por grados, muy usados en soul y neo-soul. Elegante y cálido.',t:'Mantené la nota superior casi fija (la 9ª o 5ª): sentí cómo cambia el color debajo.',s:'Jónica / Lidia sobre el IV'},
-    {c:'s',l:2,n:'Resolución gospel con suspensión',p:'ii7 V7sus4 V7 Imaj9',d:'La suspensión del V retrasa la resolución y crea esa tensión que “pide” el I.',t:'Sobre el V7sus4 tocá un acorde de ii/V (Fa-Sol-Do-Re en Do) y resolvé la 4ª a la 3ª.',s:'Mixolidia'},
+    {c:'s',l:2,n:'Resolución gospel con suspensión',p:'ii7 V7sus4 V7 Imaj9',d:'La suspensión del V retrasa la resolución y crea esa tensión que “pide” el I.',t:'Sobre el V7sus4 tocá Fa-Sol-Do-Re (es Sol7sus4) o Rem7/Sol, y resolvé la 4ª (Do) a la 3ª (Si).',s:'Mixolidia'},
     {c:'s',l:3,n:'Neo-soul con turnaround',p:'ii9 V13 Imaj9 VI7b9',d:'Acordes extendidos y un VI7b9 que “tira” de nuevo al ii: se puede repetir en loop.',t:'Voicings abiertos: fundamental en la izquierda, 3ª-7ª-9ª en la derecha.',s:'Dórica / Mixolidia / Disminuida S-T'},
     {c:'s',l:1,n:'Corazón y alma (doo-wop)',p:'I vi IV V',d:'La progresión de los años 50 que todavía suena fresca.',t:'Probala en tresillos (12/8) para el clásico feel de balada.',s:'Pentatónica mayor'},
     {c:'s',l:2,n:'Menor con paso a la relativa mayor',p:'i7 iv7 bVII7 bIIImaj7',d:'Empieza en menor y termina en el acorde mayor relativo: pasa de sombra a luz.',t:'En La menor: Am7 – Dm7 – G7 – Cmaj7. Es un ii–V–I disfrazado.',s:'Eólica → Jónica del relativo'},
@@ -1611,18 +1658,18 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     {c:'j',l:2,n:'ii–V–I mayor',p:'ii7 V7 Imaj7',d:'La base del jazz. Si dominás esta, entendés la mitad del repertorio.',t:'Voice leading: la 7ª del ii baja a la 3ª del V, y la 7ª del V baja a la 3ª del I.',s:'Dórica – Mixolidia – Jónica'},
     {c:'j',l:3,n:'ii–V–I con extensiones',p:'ii9 V13 Imaj9',d:'Misma cadencia con 9ª y 13ª: suena a jazz moderno y gospel.',t:'Dejá la fundamental para el bajo (o no la toques) y concentrate en 3ª, 7ª y tensiones.',s:'Dórica – Mixolidia – Lidia'},
     {c:'j',l:2,n:'ii–V–i menor',p:'iiø V7b9 i6',d:'La cadencia menor: el ii es semidisminuido y el V lleva b9.',t:'Sobre el V7b9 funciona muy bien la escala disminuida semitono-tono.',s:'Locria #2 – Frigia dominante / Alterada – Menor melódica'},
-    {c:'j',l:2,n:'Turnaround I–vi–ii–V',p:'Imaj7 vi7 ii7 V7',d:'El “ciclo” que vuelve al inicio. Es el motor de infinidad de estándares.',t:'Cada raíz baja una quinta (o sube una cuarta): practicalo por ciclo de quintas en las 12 tonalidades.',s:'Jónica – Eólica – Dórica – Mixolidia'},
-    {c:'j',l:2,n:'Turnaround iii–VI–ii–V',p:'iii7 VI7 ii7 V7',d:'Cadena de dominantes: cada acorde “empuja” al siguiente.',t:'El VI7 pide la nota b13 o b9 si querés más tensión.',s:'Frigia – Mixolidia b13 – Dórica – Mixolidia'},
-    {c:'j',l:3,n:'Turnaround Dameron',p:'Imaj7 bIIImaj7 bVImaj7 bIImaj7',d:'Acordes mayores separados por terceras menores: un clásico del bebop.',t:'En Do: Cmaj7 – Ebmaj7 – Abmaj7 – Dbmaj7. Resuelve al ii–V final.',s:'Lidia sobre cada maj7'},
-    {c:'j',l:3,n:'Cambios de ritmo (sección A)',p:'Imaj7 VI7 | ii7 V7 | iii7 VI7 | ii7 V7',d:'Progresión de “I Got Rhythm”, base de cientos de temas. Se toca rápido y con swing.',t:'Empezá lento con solo la fundamental y la 7ª de cada acorde (guide tones).',s:'Jónica – Mixolidia b13 – Dórica – Mixolidia'},
-    {c:'j',l:3,n:'Puente de cambios de ritmo',p:'III7 | VI7 | II7 | V7',d:'Cuatro dominantes consecutivos en ciclo de quintas, dos compases cada uno.',t:'Cada dominante resuelve al siguiente: tocá la 3ª y la 7ª con el menor movimiento posible.',s:'Mixolidia / Alterada'},
-    {c:'j',l:3,n:'Ciclo de quintas diatónico',p:'Imaj7 | IVmaj7 | viiø | iii7 | vi7 | ii7 | V7 | Imaj7',d:'Recorre todos los acordes del tono en cuartas descendentes. Gran ejercicio para memorizar tonalidades.',t:'Cada acorde comparte dos notas con el anterior: seguí la nota común.',s:'Jónica – Lidia – Locria – Frigia – Eólica – Dórica – Mixolidia'},
+    {c:'j',l:2,n:'Turnaround I–vi–ii–V',p:'Imaj7 vi7 ii7 V7',d:'El “ciclo” que vuelve al inicio. Es el motor de infinidad de estándares.',t:'Del vi al ii, del ii al V y del V al I cada raíz sube una cuarta (baja una quinta); solo el primer paso, I→vi, es una 3ª menor hacia abajo. Practicalo por ciclo de quintas en las 12 tonalidades.',s:'Jónica – Eólica – Dórica – Mixolidia'},
+    {c:'j',l:2,n:'Turnaround iii–VI–ii–V',p:'iii7 VI7 ii7 V7',d:'Cadena en ciclo de quintas: el VI7 y el V7 son dominantes y empujan al acorde siguiente.',t:'El VI7 pide la nota b13 o b9 si querés más tensión.',s:'Frigia – Mixolidia b6 – Dórica – Mixolidia'},
+    {c:'j',l:3,n:'Turnaround Dameron',p:'Imaj7 bIIImaj7 bVImaj7 bII7',d:'Cuatro centros (raíces a 3ª menor, luego 4ª y 4ª) y un bII7 final que vuelve al I: el giro clásico del bebop (“Lady Bird”).',t:'En Do: Cmaj7 – Ebmaj7 – Abmaj7 – Db7. El Db7 es el sustituto tritonal del V y cae al Do.',s:'Lidia sobre cada maj7'},
+    {c:'j',l:3,n:'Cambios de ritmo (sección A)',p:'Imaj7 VI7 | ii7 V7 | iii7 VI7 | ii7 V7',d:'Progresión de “I Got Rhythm”, base de cientos de temas. Se toca rápido y con swing.',t:'Empezá lento con solo la fundamental y la 7ª de cada acorde (guide tones).',s:'Jónica – Mixolidia b6 – Dórica – Mixolidia'},
+    {c:'j',l:3,n:'Puente de cambios de ritmo',p:'III7 | VI7 | II7 | V7',d:'Cuatro dominantes consecutivos en ciclo de quintas (en el tema original, dos compases cada uno; acá resumido a uno).',t:'Cada dominante resuelve al siguiente: tocá la 3ª y la 7ª con el menor movimiento posible.',s:'Mixolidia / Alterada'},
+    {c:'j',l:3,n:'Ciclo de quintas diatónico',p:'Imaj7 | IVmaj7 | viiø | iii7 | vi7 | ii7 | V7 | Imaj7',d:'Recorre todos los acordes del tono en cuartas ascendentes (quintas descendentes): Do-Fa-Si-Mi-La-Re-Sol-Do. El único salto distinto es Fa→Si (tritono). Gran ejercicio para memorizar tonalidades.',t:'Cada acorde comparte dos notas con el anterior: seguí la nota común.',s:'Jónica – Lidia – Locria – Frigia – Eólica – Dórica – Mixolidia'},
     {c:'j',l:2,n:'Hojas de otoño',p:'ii7 | V7 | Imaj7 | IVmaj7 | viiø | III7 | vi7',d:'Dos cadencias seguidas: hacia el mayor y hacia el relativo menor. Estructura típica de estándar.',t:'El III7 es dominante del vi: usá la b9 y la b13 para dramatizar.',s:'Dórica – Mixolidia – Jónica – Lidia – Locria – Alterada – Menor melódica'},
     {c:'j',l:3,n:'Sustitución tritonal',p:'ii7 bII7 Imaj7',d:'El bII7 comparte el tritono con el V7: suena más cromático y moderno.',t:'La bajada cromática del bajo (Re – Reb – Do) es la gran ventaja.',s:'Lidia dominante sobre el bII7'},
     {c:'j',l:3,n:'ii–V trasero (backdoor)',p:'iv7 bVII7 Imaj7',d:'Un camino alternativo al I que viene “por la puerta de atrás”: más suave que el V7.',t:'En Do: Fm7 – Bb7 – Cmaj7. El Bb7 se toca como Mixolidia o Lidia dominante.',s:'Dórica – Mixolidia / Lidia dominante'},
     {c:'j',l:2,n:'Cliché de línea menor',p:'i i(maj7) i7 i6',d:'Un acorde menor se queda quieto mientras una voz baja cromáticamente. Suena a película negra.',t:'Voz superior que baja: 1 – 7 – b7 – 6 sobre el mismo acorde de bajo.',s:'Menor melódica / Dórica'},
-    {c:'j',l:3,n:'Bossa nova (Ipanema)',p:'Imaj7 | II7 | ii7 | bII7',d:'Cadencia que alterna acordes un tono arriba y semitono abajo: sonido bossa clásico.',t:'Mano izquierda: bajo y quinta (ritmo bossa). Derecha: voicings de 4 notas.',s:'Lidia sobre el II7 – Dórica – Lidia dominante'},
-    {c:'j',l:2,n:'Blue Bossa',p:'i7 | iv7 | iiø V7b9 | i7',d:'Una de las progresiones menores más tocadas en jam sessions.',t:'Sobre el iiø V7b9 podés hacer una cadencia “menor” completa y volver al i.',s:'Dórica – Locria #2 – Frigia dominante'},
+    {c:'j',l:3,n:'Bossa nova (Ipanema)',p:'Imaj7 | II7 | ii7 | bII7',d:'El II7 (dominante del V) va al ii7 y de ahí al bII7, sustituto tritonal del V7 que vuelve al I: sonido bossa clásico.',t:'Mano izquierda: bajo y quinta (ritmo bossa). Derecha: voicings de 4 notas.',s:'Lidia dominante (o Mixolidia) sobre el II7 – Dórica sobre el ii7 – Lidia dominante sobre el bII7'},
+    {c:'j',l:2,n:'Blue Bossa (esqueleto)',p:'i7 | iv7 | iiø V7b9 | i7',d:'Una de las progresiones menores más tocadas en jam sessions.',t:'Sobre el iiø V7b9 podés hacer una cadencia “menor” completa y volver al i.',s:'Dórica – Locria #2 – Frigia dominante'},
     {c:'j',l:3,n:'Disminuido de paso',p:'Imaj7 #i°7 ii7 V7',d:'El acorde disminuido conecta el I con el ii por semitono.',t:'El #i°7 comparte notas con el V7b9 del ii: es un dominante disfrazado.',s:'Disminuida T-S'},
     {c:'j',l:3,n:'Giant Steps (simplificado)',p:'Imaj7 bIII7 | bVImaj7 VII7 | IIImaj7',d:'Tres centros tonales separados por terceras mayores. El gran desafío de Coltrane.',t:'Estudialo primero como tríadas; después sumá séptimas. Empezá a 60 BPM.',s:'Jónica + Mixolidia en cada centro'},
     {c:'j',l:3,n:'Cadena de dominantes',p:'III7 VI7 II7 V7 Imaj7',d:'Cuatro dominantes en cadena que desembocan en el I. Efecto de “cascada”.',t:'Cada dominante es el V7 del siguiente: dejá libre la nota b9 o #9 en cada uno.',s:'Alterada / Disminuida S-T'},
@@ -1633,7 +1680,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     {c:'b',l:2,n:'Blues menor',p:'i7 | i7 | i7 | i7 | iv7 | iv7 | i7 | i7 | bVI7 | V7 | i7 | V7',d:'Cambia el color a oscuro; el bVI7 y el V7 arman un final dramático.',t:'Escalá sobre el bVI7 con Lidia dominante y sobre el V7 con la menor armónica (Frigia dominante).',s:'Pentatónica menor / Dórica / Frigia dominante'},
     {c:'b',l:2,n:'Blues gospel',p:'I7 | IV7 | I7 | I7 | IV7 | iv7 | I7 | VI7 | ii7 | V7 | I7 | V7',d:'Blues con IV menor y turnaround final: sonido “iglesia”.',t:'Tocá los acordes con 6ª y 9ª para suavizarlos. Usá repetidos de cuartas en la derecha.',s:'Pentatónica mayor + blue note'},
     {c:'b',l:1,n:'Blues de 8 compases',p:'I7 | V7 | IV7 | IV7 | I7 | V7 | I7 | V7',d:'Forma más corta y muy cantable.',t:'Ideal para improvisar con pocas notas: dos o tres bien puestas.',s:'Pentatónica menor y mayor'},
-    {c:'b',l:2,n:'Turnaround ascendente',p:'I7 bIII7 IV7 bV7 V7',d:'Cierre cromático que sube y lleva a un nuevo ciclo.',t:'El bajo sube 1 – b3 – 4 – b5 – 5. Es el “walk-up” de blues.',s:'Blues menor'},
+    {c:'b',l:2,n:'Turnaround ascendente',p:'I7 I7/bIII I7/iii IV7 #iv°7 I7/V',d:'El bajo sube por grados (1 – b3 – 3 – 4 – #4 – 5) mientras el acorde se queda en I7: el “walk-up” clásico del blues, que lleva al V.',t:'Izquierda: sube nota por nota. Derecha: mantené el acorde de I7 y movete poco.',s:'Blues menor'},
     {c:'b',l:2,n:'Turnaround clásico',p:'I7 VI7 ii7 V7',d:'Los últimos dos compases del blues de jazz, convertidos en cierre.',t:'Tocalo con swing y dejá el V7 colgado para volver al inicio.',s:'Bebop dominante'},
     // MODAL / AMBIENTE
     {c:'m',l:1,n:'Vamp dórico',p:'i7 IV7',d:'Dos acordes que se mecen: Santana, jazz modal y pad ambiental.',t:'Improvisá solo con la escala dórica sobre toda la sección. Usá la 6ª mayor como nota clave.',s:'Dórica'},
@@ -1643,18 +1690,18 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     {c:'m',l:1,n:'Vamp eólico',p:'i bVII bVI bVII',d:'Menor natural en movimiento: base de pop y worship oscuro.',t:'Ideal para construir dinámicas: empezá suave y subí octava.',s:'Eólica'},
     {c:'m',l:2,n:'Épica (intercambio modal)',p:'I bVI bVII I',d:'Los acordes bVI y bVII, prestados de la menor, dan grandeza épica.',t:'Cuando llega el bVII, abrí el voicing y subí el volumen.',s:'Mixolidia b6 / Mayor'},
     {c:'m',l:2,n:'Pedal de tónica',p:'I IV/I bVII/I IV/I',d:'La tónica se queda en el bajo mientras el color cambia arriba. El mejor recurso para fluir solo.',t:'Izquierda: octava de la tónica. Derecha: tríadas I, IV, bVII y IV.',s:'Mixolidia / Pentatónica mayor'},
-    {c:'m',l:2,n:'Sus y quintas (pad quartal)',p:'Isus2 IVsus2 Vsus4 Isus2',d:'Acordes suspendidos, sin tercera: suenan abiertos y ambiguos, perfectos para fondo.',t:'Pedal de sustain a fondo y manos separadas por dos octavas.',s:'Pentatónica mayor'},
+    {c:'m',l:2,n:'Sus y vacíos (pad sin tercera)',p:'Isus2 IVsus2 Vsus4 Isus2',d:'Acordes suspendidos, sin tercera: suenan abiertos y ambiguos, perfectos para fondo.',t:'Pedal de sustain a fondo y manos separadas por dos octavas.',s:'Pentatónica mayor'},
     {c:'m',l:2,n:'Ambiente con maj9',p:'Imaj9 iii7 IVmaj9 V7sus4',d:'Acordes con 9ª que suben de grado: serenos y luminosos.',t:'Dejá sonar la voz superior como línea melódica.',s:'Lidia / Jónica'},
     {c:'m',l:2,n:'Elevación modal',p:'I bIII bVII IV',d:'Mezcla de mayor y menor que se siente como una ola ascendente.',t:'En Do: Do – Mib – Sib – Fa. Probalo en todas las tonalidades.',s:'Mixolidia / Eólica según el acorde'},
     // LATINO
     {c:'l',l:1,n:'Cadencia andaluza',p:'i bVII bVI V',d:'La cadencia más famosa del flamenco y de la música latina.',t:'En La menor: Am – G – F – E. Ritmo en 3+3+2 funciona genial.',s:'Frigia dominante / Eólica'},
-    {c:'l',l:2,n:'Frigio flamenco',p:'i bII bIII bII',d:'Alterna medio tono arriba y abajo del centro: puro sabor español.',t:'La derecha toca tríadas mayores y la izquierda marca la raíz.',s:'Frigia dominante'},
-    {c:'l',l:2,n:'Bossa II–V',p:'Imaj7 | VI7 | ii7 | V7',d:'Compás de bossa con un VI7 que lleva al ii.',t:'Marcá el patrón: bajo, quinta, acorde sincopado.',s:'Jónica – Mixolidia b13 – Dórica – Mixolidia'},
+    {c:'l',l:2,n:'Frigio flamenco',p:'i bII bIII bII',d:'Alterna la tónica menor con el bII y el bIII (medio tono y tono y medio arriba): puro sabor español.',t:'Mano derecha: tríadas (menor sobre el i, mayores sobre bII y bIII); la izquierda marca la raíz.',s:'Frigia'},
+    {c:'l',l:2,n:'Bossa II–V',p:'Imaj7 | VI7 | ii7 | V7',d:'Compás de bossa con un VI7 que lleva al ii.',t:'Marcá el patrón: bajo, quinta, acorde sincopado.',s:'Jónica – Mixolidia b6 – Dórica – Mixolidia'},
     {c:'l',l:1,n:'Montuno',p:'I IV V IV',d:'Base de salsa y música tropical: tres acordes que se repiten.',t:'Mano derecha con octavas sincopadas (guajeo).',s:'Mixolidia / Pentatónica mayor'},
     {c:'l',l:2,n:'Tango',p:'i iv V7 i',d:'Cadencia menor armónica: dramática y exacta.',t:'Fraseá con rubato y acentos en el V7.',s:'Menor armónica'},
     // CADENCIAS
     {c:'c',l:1,n:'Auténtica',p:'V7 I',d:'La más fuerte: dominante a tónica.',t:'Ideal para cerrar. Dejá sonar el I con pedal.',s:'Mixolidia'},
-    {c:'c',l:1,n:'Plagal',p:'IV I',d:'Suave, “amén”.',t:'El 6º del IV da el color gospel.',s:'Mayor'},
+    {c:'c',l:1,n:'Plagal',p:'IV I',d:'Suave, “amén”.',t:'Sumá la 6ª al IV (Fa-La-Do-Re) para el color gospel.',s:'Mayor'},
     {c:'c',l:1,n:'Plagal con IV menor',p:'iv I',d:'Más emotiva que la plagal normal.',t:'La nota b6 baja a 5.',s:'Eólica → Mayor'},
     {c:'c',l:1,n:'Engañosa',p:'V7 vi',d:'Parece que va al I y termina en el vi.',t:'Sorpresa útil para alargar una frase.',s:'Mixolidia → Eólica'},
     {c:'c',l:2,n:'Semicadencia',p:'I ii V',d:'Termina en el V y “queda abierta”: pide continuar.',t:'Útil al final de la primera frase.',s:'Mayor'},
@@ -1666,16 +1713,26 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   var FCATS = [['all','Todas'],['g','Gospel y worship'],['s','Soul y pop'],['j','Jazz'],['b','Blues'],['m','Modal y ambiente'],['l','Latino'],['c','Cadencias']];
   var LVL = {1:'Básico',2:'Intermedio',3:'Avanzado'};
   var RN_IDX = ['i','ii','iii','iv','v','vi','vii'], MJ_OFF = [0,2,4,5,7,9,11];
+  var ENARM = {Cb:'B',Fb:'E','E#':'F','B#':'C'};
+  function spellDeg(tonicName,idx,targetPc){
+    var li = LETRAS.indexOf(tonicName.charAt(0)); if(li<0) return null;
+    var k = (li + idx) % 7, d = ((((targetPc%12)+12)%12) - LPC[k] + 18) % 12 - 6;
+    if(d<-1 || d>1) return null;
+    var nm0 = LETRAS.charAt(k) + (d>0 ? '#' : (d<0 ? 'b' : ''));
+    return ENARM[nm0] || nm0;
+  }
   function parseFree(tok,pc,keyFlats){
     var m = /^([♭b#]?)(VII|VI|IV|V|III|II|I|vii|vi|iv|v|iii|ii|i)(ø|°|dim)?(.*?)(?:\/([♭b#]?)(VII|VI|IV|V|III|II|I|vii|vi|iv|v|iii|ii|i))?$/.exec(tok); if(!m) return null;
     var idx = RN_IDX.indexOf(m[2].toLowerCase()), lower = m[2]===m[2].toLowerCase(), acc = m[1]||'';
     var off = MJ_OFF[idx] + (/[♭b]/.test(acc)?-1:(acc==='#'?1:0)), suf = m[4]||'', q;
     if(m[3]==='ø') q = 'm7b5'+suf; else if(m[3]) q = 'dim'+suf; else q = (lower?'m':'')+suf;
     var fl = /[♭b]/.test(acc) ? true : (acc==='#' ? false : keyFlats);
-    var name = nameOf(pc+off,false,fl)+q;
+    var tonicName = nameOf(pc,false,keyFlats);
+    var name = (spellDeg(tonicName,idx,pc+off) || nameOf(pc+off,false,fl))+q;
     if(m[6]){
       var bacc = m[5]||'', bo = MJ_OFF[RN_IDX.indexOf(m[6].toLowerCase())] + (/[♭b]/.test(bacc)?-1:(bacc==='#'?1:0));
-      name += '/' + nameOf(pc+bo,false,/[♭b]/.test(bacc)?true:(bacc==='#'?false:keyFlats));
+      var bidx = RN_IDX.indexOf(m[6].toLowerCase());
+      name += '/' + (spellDeg(tonicName,bidx,pc+bo) || nameOf(pc+bo,false,/[♭b]/.test(bacc)?true:(bacc==='#'?false:keyFlats)));
     }
     var dom = !lower && !m[3] && !/maj|M7/.test(suf) && /7|9|13/.test(suf), o = ((off%12)+12)%12, col;
     if(dom) col = o===0 ? FCOL.t : (o===5 ? FCOL.s : FCOL.d);
@@ -1683,7 +1740,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     return {c:name,col:col,sub:tok};
   }
   function freeRows(p,pc){
-    var firstLower = /^[♭b#]?(vii|vi|iv|v|iii|ii|i)/.test(p.p.trim());
+    var firstLower = (p.m!==undefined) ? !!p.m : /(^|[\s|])i(?![iv])/.test(p.p);
     var keyFlats = hFlats(pc,firstLower), hasBars = p.p.indexOf('|')>=0;
     var bars = p.p.split('|').map(function(b){ return b.trim().split(/\s+/).filter(Boolean); }).filter(function(b){ return b.length; });
     var rows = [];
@@ -1719,11 +1776,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     });
     h += '<div class="hcard"><div class="hh">Ideas de reharmonización <small>en '+KEYN[H.pc]+'</small></div><div class="hnote">'
       + '<b>Sustitución tritonal:</b> cambiá el V7 por el bII7 (ej. '+nameOf(H.pc+7,false,hFlats(H.pc,false))+'7 → '+nameOf(H.pc+1,false,true)+'7). Comparten el tritono.<br>'
-      + '<b>Dominante secundario:</b> antes de cualquier acorde diatónico, poné su V7 (ej. '+nameOf(H.pc+9,false,hFlats(H.pc,false))+'7 antes del ii).<br>'
+      + '<b>Dominante secundario:</b> antes de ii, iii, IV, V o vi, poné su V7 (ej. '+nameOf(H.pc+9,false,hFlats(H.pc,false))+'7 antes del ii).<br>'
       + '<b>Disminuido de paso:</b> entre el I y el ii, ponés un #i°7 ('+nameOf(H.pc+1,false,false)+'dim7).<br>'
-      + '<b>Intercambio modal:</b> tomá acordes de la menor paralela: bIII, bVI, bVII y iv ('+nameOf(H.pc+5,false,true)+'m, '+nameOf(H.pc+8,false,true)+', '+nameOf(H.pc+10,false,true)+').<br>'
+      + '<b>Intercambio modal:</b> tomá acordes de la menor paralela: bIII, bVI, bVII y iv ('+nameOf(H.pc+3,false,true)+', '+nameOf(H.pc+8,false,true)+', '+nameOf(H.pc+10,false,true)+' y '+nameOf(H.pc+5,false,true)+'m).<br>'
       + '<b>Pedal:</b> mantené la tónica en el bajo y cambiá los acordes arriba (slash chords: IV/I, V/I, bVII/I).<br>'
-      + '<b>Tensiones:</b> sumá 9ª, 11ª y 13ª a los acordes; en dominantes probá b9, #9, #11, b13.</div></div>';
+      + '<b>Tensiones:</b> sumá 9ª y 13ª; la 11ª natural solo en acordes menores y sus (en mayores y dominantes la 11ª choca con la 3ª: probá #11); en dominantes también b9, #9, b13.</div></div>';
     h += '<div class="hcard"><div class="hh">Cómo estudiar esto <small>plan de práctica</small></div><div class="hnote">'
       + '1. Elegí <b>una</b> progresión y tocala lenta (60 BPM) con manos separadas.<br>'
       + '2. Aprendé solo el <b>bajo</b> y las notas guía (3ª y 7ª).<br>'
@@ -1745,7 +1802,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     {g:'Modos de la mayor',n:'Locria',iv:[0,1,3,5,6,8,10],u:'Menor con 2ª menor y 5ª disminuida: inestable.',ch:'m7b5 (vii de la mayor)'},
     {g:'Menores y dominantes',n:'Menor armónica',iv:[0,2,3,5,7,8,11],u:'Menor con 7ª mayor: tensión clásica, tango y música árabe.',ch:'m(maj7), V7b9 de la menor'},
     {g:'Menores y dominantes',n:'Menor melódica (jazz)',iv:[0,2,3,5,7,9,11],u:'Menor con 6ª y 7ª mayores: sonido jazz, la más usada para m(maj7).',ch:'m(maj7), m6'},
-    {g:'Menores y dominantes',n:'Dórica b2',iv:[0,1,3,5,7,9,10],u:'Dórica con 2ª menor: tensa y misteriosa.',ch:'m7sus4b9'},
+    {g:'Menores y dominantes',n:'Dórica b2',iv:[0,1,3,5,7,9,10],u:'Dórica con 2ª menor: tensa y misteriosa.',ch:'m7, 7sus4b9'},
     {g:'Menores y dominantes',n:'Lidia aumentada',iv:[0,2,4,6,8,9,11],u:'Lidia con 5ª aumentada: muy brillante.',ch:'maj7#5'},
     {g:'Menores y dominantes',n:'Lidia dominante',iv:[0,2,4,6,7,9,10],u:'Dominante con #11: la que se usa en el bII7 tritonal.',ch:'7#11, bII7, bVII7'},
     {g:'Menores y dominantes',n:'Mixolidia b6',iv:[0,2,4,5,7,8,10],u:'Dominante con 13ª menor: tensión típica de los V7 de menor.',ch:'7b13 (V7 → i)'},
@@ -1799,7 +1856,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     }
     h += '<div class="hcard"><div class="hh">¿Qué escala toco sobre cada acorde?</div><div class="hnote">'
       + '<b>Imaj7:</b> Jónica o Lidia (si querés el #11).<br><b>IVmaj7:</b> Lidia.<br><b>ii7 / m7:</b> Dórica.<br><b>iii7:</b> Frigia.<br><b>vi7:</b> Eólica.<br>'
-      + '<b>V7 → Imaj7:</b> Mixolidia (o Mixolidia b13 / Alterada para más tensión).<br><b>V7 → i:</b> Frigia dominante, Alterada o Disminuida S-T.<br>'
+      + '<b>V7 → Imaj7:</b> Mixolidia (o Mixolidia b6 / Alterada para más tensión).<br><b>V7 → i:</b> Frigia dominante, Alterada o Disminuida S-T.<br>'
       + '<b>bII7 (tritonal):</b> Lidia dominante.<br><b>iiø (m7b5):</b> Locria o Locria #2.<br><b>dim7:</b> Disminuida T-S.<br><b>m(maj7):</b> Menor melódica o armónica.<br>'
       + '<b>maj7#5:</b> Lidia aumentada.<br><b>7#5:</b> Tonos enteros.<br><b>Blues (I7 IV7 V7):</b> Pentatónica menor + blue note, o pentatónica mayor.<br><b>Sus4:</b> Mixolidia o pentatónica mayor.</div></div>';
     return h;
@@ -1844,6 +1901,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     if((el = t.closest('[data-fc]'))){ H.fcat = el.getAttribute('data-fc'); renderHarm(); return; }
     if((el = t.closest('[data-sc]'))){ H.sc = parseInt(el.getAttribute('data-sc'),10); renderHarm(); return; }
     if((el = t.closest('.cc-play[data-notes]'))){ playNotes(el.getAttribute('data-notes').split(' ').map(Number)); return; }
+    if((el = t.closest('[data-dl]'))){ downloadIV(); return; }
     if((el = t.closest('.cc-play'))){ if(el.getAttribute('data-seq')) playSeq(el.getAttribute('data-seq').split(' ')); else if(el.getAttribute('data-p')) playChord(el.getAttribute('data-p')); return; }
     if((el = t.closest('g[data-d]'))){ H.sel = parseInt(el.getAttribute('data-d'),10); var S = sc(H.minor); playChord(degChord(S,H.sel,H.pc,hFlats(H.pc,H.minor))); renderHarm(); return; }
     if((el = t.closest('g[data-cm]'))){ var i = parseInt(el.getAttribute('data-cm'),10); H.pc = PCN[CIRC_M[i]]; H.minor = false; H.sel = 0; playChord(CIRC_M[i]); renderHarm(); return; }
@@ -1953,6 +2011,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   function escH(t){ return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}); }
   $('spBtn').addEventListener('click',function(){
     this.blur(); var s = songs[current]; if(!s) return;
+    if(navigator.onLine===false){ toast('Sin internet: Spotify necesita conexión (o la playlist descargada)'); return; }
     window.open(spUrl(s),'_blank');
   });
   function spRender(){
@@ -1989,7 +2048,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     if(!songs.length) $('app').classList.add('showlist');
     if(songs.length){ var u=0; try{u=parseInt(localStorage.getItem('ultima')||'0',10)||0}catch(e){} openSong(Math.min(u,songs.length-1)); }
     if(/#rep=/.test(location.hash)) setTimeout(function(){ importShare(location.hash); },500);
-  });
+  }).catch(function(){ try{ $('viewer').innerHTML='<div id="empty"><div>Este navegador no puede guardar canciones.<br>Abrí la app desde el ícono de inicio, no desde una ventana privada.</div></div>'; }catch(e){} });
 })();
 </script>
 </body>
