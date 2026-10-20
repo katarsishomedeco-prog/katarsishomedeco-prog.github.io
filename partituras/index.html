@@ -188,6 +188,21 @@ body.harmMode #tbar{display:none!important}
 .cc-notes{text-align:center;font-size:15px;font-weight:700;margin-top:6px}
 .cc-leg{font-size:11px;color:var(--muted);text-align:center;margin-top:2px}
 @media (max-width:860px){ #chordCard{bottom:150px} }
+
+#spBtn{background:#1db954;color:#06210f;border:0;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:800;cursor:pointer}
+#spBtn:hover{background:#1ed760}
+#spListBtn{background:#1db954;color:#06210f;border:0;border-radius:10px;padding:10px 6px;font-size:13px;font-weight:800;cursor:pointer}
+#spModal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;z-index:50;padding:12px}
+#spModal[hidden]{display:none}
+#spModal .mbox{width:min(720px,100%);overflow:auto}
+.sp-row{display:grid;grid-template-columns:28px 1fr 1fr auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.sp-row .sn{background:var(--accent);color:#111;font-weight:800;border-radius:6px;text-align:center;font-size:14px;padding:2px 0}
+.sp-row .st{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis}
+.sp-row input{font-size:14px;padding:7px}
+.sp-row a{background:#1db954;color:#06210f;font-weight:800;border-radius:8px;padding:7px 10px;font-size:13px;text-decoration:none;white-space:nowrap}
+.sp-tip{font-size:13px;color:var(--muted);line-height:1.45;margin:4px 0}
+.sp-tip b{color:var(--fg)}
+@media (max-width:600px){ .sp-row{grid-template-columns:24px 1fr auto} .sp-row input{grid-column:2 / 3;grid-row:2} .sp-row a{grid-row:1 / 3;grid-column:3} }
 </style>
 </head>
 <body>
@@ -205,6 +220,7 @@ body.harmMode #tbar{display:none!important}
       <button id="pasteBtn" tabindex="-1">+ Pegar texto</button>
       <button id="shareBtn" tabindex="-1" hidden>📲 Enviar repertorio al celu</button>
       <button id="recvBtn" tabindex="-1">📥 Recibir repertorio</button>
+      <button id="spListBtn" tabindex="-1" hidden>🎧 Lista para Spotify</button>
       <button id="newSet" tabindex="-1" hidden>Repertorio nuevo</button>
     </div>
     <div id="keys">
@@ -247,7 +263,7 @@ body.harmMode #tbar{display:none!important}
         </span>
         <span id="vd"></span>
       </span>
-      <span class="z" id="bz"></span>
+      <button id="spBtn" hidden tabindex="-1" title="Abrir esta canción en Spotify">🎧 Spotify</button><span class="z" id="bz"></span>
     </div>
     <div id="viewer"><div id="empty"><div>Tu repertorio está vacío.<br><b>Apretá “/”</b> y buscá una canción para agregarla,<br>o tocá <b>Biblioteca</b> para ver todas.<br>Si todavía no cargaste tus canciones: <b>+ Importar PDF o ZIP</b>.</div></div></div>
     <div id="harm" hidden>
@@ -262,6 +278,13 @@ body.harmMode #tbar{display:none!important}
   <textarea id="mx" placeholder="Pegá acá la letra con los acordes, tal como la copiaste de lacuerda, cifraclub, etc."></textarea>
   <div class="mrow"><label>Tono original <select id="mk"></select></label><span>Si lo dejás en “?”, lo detecto solo.</span></div>
   <div class="mrow"><button id="msave">Guardar</button><button id="mcancel">Cancelar</button></div>
+</div></div>
+<div id="spModal" hidden><div class="mbox">
+  <h3>🎧 Repertorio en Spotify</h3>
+  <div class="sp-tip">Tocá <b>Abrir en Spotify</b> en cada canción (se abre la búsqueda en la app de Spotify). Si sabés quién la canta, escribilo en <b>Artista</b> y la búsqueda sale más exacta: queda guardado.</div>
+  <div id="spRows"></div>
+  <div class="sp-tip"><b>Para escucharlas sin internet (Premium):</b> en Spotify creá una playlist con estas canciones, en este orden, y tocá la flecha <b>Descargar</b>.</div>
+  <div class="mrow"><button id="spCopy">Copiar lista</button><button id="spOpen">Abrir Spotify</button><button id="spClose">Cerrar</button></div>
 </div></div>
 <div id="tbar">
   <button tabindex="-1" data-t="list">☰</button><button tabindex="-1" data-t="prev">◀</button><button tabindex="-1" data-t="next">▶</button><button tabindex="-1" data-t="z-">A−</button><button tabindex="-1" data-t="z+">A+</button>
@@ -612,7 +635,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     $('cSet').textContent = '('+songs.length+')'; $('cLib').textContent = '('+library.length+')';
     $('tSet').classList.toggle('on',view==='set'); $('tLib').classList.toggle('on',view==='lib');
     $('newSet').hidden = !(view==='set' && songs.length);
-    $('shareBtn').hidden = !(view==='set' && songs.length);
+    $('shareBtn').hidden = !(view==='set' && songs.length); $('spListBtn').hidden = !(view==='set' && songs.length);
     if(view==='lib') renderLib(scrollHi); else renderSet();
   }
   function renderSet(){
@@ -726,7 +749,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     }
   }
   function clearViewer(){
-    current=-1; doc=null; analysis={}; $('bn').textContent='–'; $('bt').textContent='Sin canción'; $('bz').textContent=''; $('kw').hidden=true; $('vw').hidden=true;
+    current=-1; doc=null; analysis={}; $('bn').textContent='–'; $('bt').textContent='Sin canción'; $('bz').textContent=''; $('kw').hidden=true; $('vw').hidden=true; $('spBtn').hidden=true;
     $('viewer').innerHTML='<div id="empty"><div>Tu repertorio está vacío.<br><b>Apretá “/”</b> y buscá una canción para agregarla,<br>o tocá <b>Biblioteca</b> para ver todas.<br>Si todavía no cargaste tus canciones: <b>+ Importar PDF o ZIP</b>.</div></div>';
   }
 
@@ -814,7 +837,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     current = i; try{localStorage.setItem('ultima',String(i))}catch(e){}
     var token = ++openToken, s = songs[i];
     $('app').classList.remove('showlist');
-    $('bn').textContent = i+1; $('bt').textContent = cleanName(s.name); updZoom();
+    $('bn').textContent = i+1; $('bt').textContent = cleanName(s.name); updZoom(); $('spBtn').hidden = false;
     renderList(); analysis = {};
     if(s.kind==='text'){ openText(s); return; }
     getBuf(s).then(function(buf){
@@ -1897,6 +1920,67 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       if(missing.length) setTimeout(function(){ alert('No encontré estas canciones en este aparato (importá el ZIP de la biblioteca):\n\n'+missing.join('\n')); },600);
     });
   }
+
+  // ---------- Spotify ----------
+  var ARTISTS = {
+    'enciende una luz':'Marcos Witt',
+    'glorioso dia':'Passion Kristian Stanfill',
+    'mi esperanza esta en jesus':'Bethel Music',
+    'ofrenda':'Majo y Dan',
+    'mas de lo que imagino':'Gracia Soberana',
+    'gracias por la cruz':'Majo y Dan',
+    'no yo sino cristo':'Majo y Dan',
+    'fiel':'Majo y Dan',
+    'a ti la gloria':'Gracia Soberana',
+    'el dios que adoramos':'Gracia Soberana',
+    'nombre no hay':'Un Corazon',
+    'babel':'Un Corazon',
+    'como el sol':'Un Corazon',
+    '1000 pedazos':'Un Corazon',
+    'quien dices que soy':'Hillsong en Español',
+    'tumbas a jardines':'Elevation Worship',
+    'hermoso nombre':'Hillsong en Español'
+  };
+  function spTitle(s){ return cleanName(s.name).replace(/\s*\([^)]*\)/g,'').replace(/\s+-\s*[A-G][#b]?m?\s*$/i,'').replace(/\s+/g,' ').trim(); }
+  function spParen(s){ var m = /\(([^)]*)\)/.exec(cleanName(s.name)); return m ? m[1].trim() : ''; }
+  function spArtist(s){
+    if(s.artist!=null && s.artist!=='') return s.artist;
+    var k = norm(spTitle(s)); if(ARTISTS[k]) return ARTISTS[k];
+    var pr = spParen(s); if(pr && !/^(himno|versi|blues|eccos)/i.test(pr) && !/^[A-G][#b]?m?$/.test(pr)) return pr;
+    return '';
+  }
+  function spUrl(s){ var q = (spTitle(s)+' '+spArtist(s)).trim(); return 'https://open.spotify.com/search/'+encodeURIComponent(q); }
+  function escH(t){ return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}); }
+  $('spBtn').addEventListener('click',function(){
+    this.blur(); var s = songs[current]; if(!s) return;
+    window.open(spUrl(s),'_blank');
+  });
+  function spRender(){
+    var h = '';
+    songs.forEach(function(s,i){
+      h += '<div class="sp-row"><span class="sn">'+(i+1)+'</span><span class="st">'+escH(spTitle(s))+'</span>'
+        + '<input data-i="'+i+'" placeholder="Artista (opcional)" value="'+escH(spArtist(s))+'" autocomplete="off">'
+        + '<a data-l="'+i+'" href="'+spUrl(s)+'" target="_blank" rel="noopener">▶ Abrir en Spotify</a></div>';
+    });
+    $('spRows').innerHTML = h || '<div class="sp-tip">El repertorio está vacío.</div>';
+  }
+  $('spListBtn').addEventListener('click',function(){ this.blur(); spRender(); $('spModal').hidden = false; });
+  $('spClose').addEventListener('click',function(){ $('spModal').hidden = true; });
+  $('spModal').addEventListener('click',function(e){ if(e.target===$('spModal')) $('spModal').hidden = true; });
+  $('spModal').addEventListener('keydown',function(e){ if(e.key==='Escape') $('spModal').hidden = true; });
+  $('spRows').addEventListener('change',function(e){
+    var i = e.target.getAttribute && e.target.getAttribute('data-i'); if(i==null) return;
+    var s = songs[parseInt(i,10)]; if(!s) return;
+    s.artist = e.target.value.trim(); saveSong(s);
+    var a = $('spRows').querySelector('a[data-l="'+i+'"]'); if(a) a.href = spUrl(s);
+    toast('Artista guardado');
+  });
+  $('spOpen').addEventListener('click',function(){ window.open('https://open.spotify.com/','_blank'); });
+  $('spCopy').addEventListener('click',function(){
+    var t = songs.map(function(s,i){ var a = spArtist(s); return (i+1)+'. '+spTitle(s)+(a?' – '+a:''); }).join('\n');
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(function(){ toast('Lista copiada'); },function(){ window.prompt('Copiá la lista:',t); }); }
+    else window.prompt('Copiá la lista:',t);
+  });
 
   // ---------- Inicio ----------
   loadAll().then(function(){
