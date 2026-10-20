@@ -235,6 +235,17 @@ body.stage .msw button[data-m="harm"], body.stage #kw .tb, body.stage #vw, body.
 .pn-card .hands b.l{color:#e8744a}.pn-card .hands b.r{color:#7ec8ff}
 .pn-leg{font-size:12px;color:var(--muted)}
 .pn-seq{font-size:13px;color:var(--fg);background:#0e0e10;border-radius:8px;padding:6px 10px;line-height:1.6}
+
+#fiBtn{background:#26262b;border:1px solid #3a3a42;color:var(--fg);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer}
+body.stage #fiBtn{display:none!important}
+#fiLine{flex:none;background:#14141a;border-bottom:1px solid var(--line);color:#f5c518;font-size:14px;font-weight:700;padding:5px 18px;display:flex;flex-wrap:wrap;gap:4px 16px}
+#fiLine[hidden]{display:none}
+#fiLine span b{color:var(--muted);font-weight:600;margin-right:4px}
+#fiModal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;z-index:50;padding:12px}
+#fiModal[hidden]{display:none}
+#fiModal .mbox{width:min(560px,100%)}
+#fiModal label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+#fiModal textarea{min-height:70px;font-family:inherit;white-space:normal}
 </style>
 </head>
 <body>
@@ -295,11 +306,12 @@ body.stage .msw button[data-m="harm"], body.stage #kw .tb, body.stage #vw, body.
         </span>
         <span id="vd"></span>
       </span>
-      <button id="spBtn" hidden tabindex="-1" title="Abrir esta canción en Spotify">🎧 Spotify</button><button id="pnBtn" hidden tabindex="-1" title="Cómo tocar esta canción en el piano">🎹 Piano</button><span class="z" id="bz"></span>
+      <button id="spBtn" hidden tabindex="-1" title="Abrir esta canción en Spotify">🎧 Spotify</button><button id="pnBtn" hidden tabindex="-1" title="Cómo tocar esta canción en el piano">🎹 Piano</button><button id="fiBtn" hidden tabindex="-1" title="Tus notas de esta canción: entrada, salida, pad, BPM">📝 Ficha</button><span class="z" id="bz"></span>
     </div>
+    <div id="fiLine" hidden></div>
     <div id="viewer"><div id="empty"><div>Tu repertorio está vacío.<br><b>Apretá “/”</b> y buscá una canción para agregarla,<br>o tocá <b>Biblioteca</b> para ver todas.<br>Si todavía no cargaste tus canciones: <b>+ Importar PDF o ZIP</b>.</div></div></div>
     <div id="harm" hidden>
-      <div id="hTabs"><button data-h="vec" class="on" tabindex="-1">Acordes vecinos</button><button data-h="prog" tabindex="-1">Progresiones</button><button data-h="free" tabindex="-1">Estudio libre</button><button data-h="esc" tabindex="-1">Escalas</button><button data-h="trans" tabindex="-1">Transiciones</button><button data-h="piano" tabindex="-1">Piano</button><button data-h="int" tabindex="-1">Intervalos</button><button data-h="circ" tabindex="-1">Círculo de quintas</button></div>
+      <div id="hTabs"><button data-h="apr" class="on" tabindex="-1">Mi misión</button><button data-h="free" tabindex="-1">Practicar</button><button data-h="acom" tabindex="-1">Acompañar</button><button data-h="esc" tabindex="-1">Escalas</button><button data-h="trans" tabindex="-1">Pasar a otra canción</button><button data-h="vec" tabindex="-1">Cambiar acordes</button><button data-h="prog" tabindex="-1">Progresiones de canciones</button><button data-h="piano" tabindex="-1">Acordes</button><button data-h="circ" tabindex="-1">Tonos y grados</button><button data-h="int" tabindex="-1">Mapa de intervalos</button></div>
       <div id="hBody"></div>
     </div>
   </section>
@@ -319,6 +331,16 @@ body.stage .msw button[data-m="harm"], body.stage #kw .tb, body.stage #vw, body.
   <div class="mrow"><button id="spCopy">Copiar lista</button><button id="spOpen">Abrir Spotify</button><button id="spClose">Cerrar</button></div>
 </div></div>
 <div id="stageBanner"><span>🎭 MODO ESCENARIO</span><span>← → pasan hoja · 1–9 cambian de canción · tono bloqueado · sin sonido</span></div>
+<div id="fiModal" hidden><div class="mbox">
+  <h3 id="fiTitle">📝 Ficha de la canción</h3>
+  <div class="sp-tip">Tus apuntes para tocarla bien. Se ven arriba de la partitura (también en modo escenario) y viajan con el repertorio al celu.</div>
+  <label>BPM (tempo)<input id="fiBpm" type="number" inputmode="numeric" min="30" max="240" placeholder="ej: 72"></label>
+  <label>Cómo entrar<input id="fiIn" placeholder="ej: pad en D, 2 compases solo"></label>
+  <label>Cómo salir<input id="fiOut" placeholder="ej: sostener D y cortar con pedal"></label>
+  <label>Pad / sonido<input id="fiPad" placeholder="ej: Omnisphere cálido, filtro cerrado"></label>
+  <label>Notas<textarea id="fiNotes" placeholder="ej: puente: crescendo, subir al coro con octavas"></textarea></label>
+  <div class="mrow"><button id="fiSave">Guardar</button><button id="fiCancel">Cancelar</button></div>
+</div></div>
 <div id="pnModal" hidden><div class="mbox">
   <h3 id="pnTitle">🎹 Piano de la canción</h3>
   <div class="pn-ctl">
@@ -824,7 +846,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       if(current===i) setVariant(sv,nv); else { sv.variant = nv; saveSong(sv); openSong(i); toast(nv ? 'Versión: '+VNAMES[nv] : 'Versión original'); }
       return;
     }
-    if(a==='del'){ var s = songs[i]; removeFromLists(s,false); toast('Quitada del repertorio (sigue en la biblioteca)'); }
+    if(a==='del'){ if(action.busy) return; var s = songs[i]; if(!s) return; action.busy = true; removeFromLists(s,false).then(function(){ action.busy = false; }, function(){ action.busy = false; }); toast('Quitada del repertorio (sigue en la biblioteca)'); }
     else {
       var j = a==='up'? i-1 : i+1; if(j<0||j>=songs.length) return;
       var t = songs[i]; songs[i]=songs[j]; songs[j]=t;
@@ -833,7 +855,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     }
   }
   function clearViewer(){
-    current=-1; doc=null; analysis={}; $('bn').textContent='–'; $('bt').textContent='Sin canción'; $('bz').textContent=''; $('kw').hidden=true; $('vw').hidden=true; $('spBtn').hidden=true; $('pnBtn').hidden=true;
+    current=-1; doc=null; analysis={}; $('bn').textContent='–'; $('bt').textContent='Sin canción'; $('bz').textContent=''; $('kw').hidden=true; $('vw').hidden=true; $('spBtn').hidden=true; $('pnBtn').hidden=true; $('fiBtn').hidden=true; $('fiLine').hidden=true;
     $('viewer').innerHTML='<div id="empty"><div>Tu repertorio está vacío.<br><b>Apretá “/”</b> y buscá una canción para agregarla,<br>o tocá <b>Biblioteca</b> para ver todas.<br>Si todavía no cargaste tus canciones: <b>+ Importar PDF o ZIP</b>.</div></div>';
   }
 
@@ -921,7 +943,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     current = i; try{localStorage.setItem('ultima',String(i))}catch(e){}
     var token = ++openToken, s = songs[i];
     $('app').classList.remove('showlist');
-    $('bn').textContent = i+1; $('bt').textContent = cleanName(s.name); updZoom(); $('spBtn').hidden = false; $('pnBtn').hidden = false;
+    $('bn').textContent = i+1; $('bt').textContent = cleanName(s.name); updZoom(); $('spBtn').hidden = false; $('pnBtn').hidden = false; fiUI(s);
     renderList(); analysis = {};
     if(s.kind==='text'){ openText(s); return; }
     getBuf(s).then(function(buf){
@@ -1158,7 +1180,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     if(e.metaKey||e.ctrlKey||e.altKey) return;
     if(e.key==='Escape' && !$('chordCard').hidden){ hideChord(); e.preventDefault(); return; }
     if(document.body.classList.contains('harmMode')) return;
-    var tg = e.target && e.target.tagName; if(tg==='INPUT'||tg==='TEXTAREA'||tg==='SELECT'||!$('modal').hidden||!$('spModal').hidden||!$('pnModal').hidden) return;
+    var tg = e.target && e.target.tagName; if(tg==='INPUT'||tg==='TEXTAREA'||tg==='SELECT'||!$('modal').hidden||!$('spModal').hidden||!$('pnModal').hidden||!$('fiModal').hidden) return;
     var k=e.key, v=$('viewer'), step=Math.round(v.clientHeight*0.88);
     if(/^[0-9]$/.test(k)){ var n = k==='0'?10:parseInt(k,10); if(n<=songs.length){ if(n-1!==current) openSong(n-1); } else toast('No hay canción '+n); e.preventDefault(); return; }
     var sh = current>=0 ? (songs[current].shift||0) : 0;
@@ -1300,15 +1322,16 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     if(editing){
       var ed = editing; ed.name = title; ed.text = txt; ed.origKey = key; ed.origGuess = false;
       ed.search = norm(title+' '+txt).slice(0,3500);
-      saveSong(ed).then(function(){ return addToSet(ed); }).then(function(){ renderList(); openSong(songs.indexOf(ed)); });
+      saveSong(ed).then(function(){ return addToSet(ed); }).then(function(){ closeModal(); renderList(); openSong(songs.indexOf(ed)); }).catch(function(){ toast('No se pudo guardar. Copiá la letra antes de cerrar.'); });
     } else {
+      var dup = library.filter(function(x){ return x.kind==='text' && x.name===title && x.text===txt; })[0];
+      if(dup){ addToSet(dup).then(function(){ closeModal(); view='set'; renderList(); openSong(songs.indexOf(dup)); toast('Ya estaba en tu biblioteca'); }); return; }
       var rec = {kind:'text',name:title,cat:'MIS CANCIONES (TEXTO)',text:txt,order:Date.now(),shift:0,origKey:key,search:norm(title+' '+txt).slice(0,3500)};
       tx('readwrite',function(s){ return s.add(rec); }).then(loadAll).then(function(){
         var s2 = library.filter(function(x){ return x.name===title && x.text===txt; })[0];
-        return addToSet(s2).then(function(){ view='set'; renderList(); openSong(songs.indexOf(s2)); toast('Canción guardada'); });
-      });
+        return addToSet(s2).then(function(){ closeModal(); view='set'; renderList(); openSong(songs.indexOf(s2)); toast('Canción guardada'); });
+      }).catch(function(){ toast('No se pudo guardar. Copiá la letra antes de cerrar.'); });
     }
-    closeModal();
   });
 
   // ---------- Barra táctil (celular) ----------
@@ -1400,7 +1423,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     ['i iv VII III','Sube hacia la relativa mayor y vuelve.'],
     ['i VI VII i','Épica: sirve para construir un coro.'],
     ['VI VII i','Dos pasos al reposo: puente o tag final.']];
-  var H = {tab:'vec', pc:0, minor:false, sel:0, tf:{f:2,fm:false,t:6,tm:false}, pr:{root:0,q:'',bass:-1}};
+  var H = {tab:'apr', pc:0, minor:false, sel:0, tf:{f:2,fm:false,t:6,tm:false}, pr:{root:0,q:'',bass:-1}};
   function sc(minor){ return minor ? MIN : MAJ; }
   function hFlats(pc,minor){ return (minor?[2,7,0,5,10,3]:[5,10,3,8,1]).indexOf(((pc%12)+12)%12)>=0; }
   function tri(pc,q){ return (q==='m'?[0,3,7]:(q==='dim'?[0,3,6]:[0,4,7])).map(function(x){ return (pc+x)%12; }); }
@@ -1881,7 +1904,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     return h + '</div>';
   }
   function tabFree(){
-    var cat = H.fcat || 'w', h = '<div class="hcard"><div class="hh">Estudio libre <small>progresiones para tocar solo, fluir en un instrumental o improvisar</small></div>'
+    var cat = H.fcat || 'w', h = '<div class="hcard"><div class="hh">Practicar <small>progresiones para tocar solo, fluir en un instrumental o improvisar</small></div>'
       + '<div class="hnote">No dependen de tus canciones. Elegí la tonalidad, la categoría y practicá cada progresión: primero lenta, con las manos separadas; después en las 12 tonalidades. Cada una trae <b>nivel</b>, una <b>idea de cómo tocarla</b> y la <b>escala</b> para improvisar encima (mirá la pestaña Escalas).</div>'
       + '<div class="kb">';
     FCATS.forEach(function(c){ h += '<button data-fc="'+c[0]+'" class="'+(cat===c[0]?'on':'')+'" tabindex="-1">'+c[1]+'</button>'; });
@@ -1996,8 +2019,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   function renderHarm(){
     var tabs = ['vec','prog','trans','piano','circ'];
     Array.prototype.forEach.call(document.querySelectorAll('#hTabs button'),function(b){ b.classList.toggle('on',b.getAttribute('data-h')===H.tab); });
-    var h = (H.tab==='trans'||H.tab==='piano'||H.tab==='int') ? '' : ((H.tab==='free'||H.tab==='esc') ? noteBar() : keyBar());
-    h += H.tab==='vec' ? tabVec() : H.tab==='prog' ? tabProg() : H.tab==='trans' ? tabTrans() : H.tab==='piano' ? tabPiano() : H.tab==='int' ? tabInt() : H.tab==='free' ? tabFree() : H.tab==='esc' ? tabScales() : tabCirc();
+    var h = (H.tab==='trans'||H.tab==='piano'||H.tab==='int'||H.tab==='acom'||H.tab==='apr') ? '' : ((H.tab==='free'||H.tab==='esc') ? noteBar() : keyBar());
+    h += H.tab==='vec' ? tabVec() : H.tab==='prog' ? tabProg() : H.tab==='trans' ? tabTrans() : H.tab==='piano' ? tabPiano() : H.tab==='int' ? tabInt() : H.tab==='free' ? tabFree() : H.tab==='esc' ? tabScales() : H.tab==='acom' ? tabAcom() : H.tab==='apr' ? tabApr() : tabCirc();
     var body = $('hBody'), top = body.scrollTop; body.innerHTML = h; body.scrollTop = top;
   }
   function setMode(m){
@@ -2049,7 +2072,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   function b64enc(str){ return btoa(unescape(encodeURIComponent(str))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
   function b64dec(b){ b = b.replace(/-/g,'+').replace(/_/g,'/'); while(b.length%4) b += '='; return decodeURIComponent(escape(atob(b))); }
   function shareCode(){
-    var items = songs.map(function(s){ var o = {n:s.name,c:s.cat||'',k:s.origKey||'',sh:s.shift||0,v:s.variant||0}; if(s.kind==='text') o.t = s.text; return o; });
+    var items = songs.map(function(s){ var o = {n:s.name,c:s.cat||'',k:s.origKey||'',sh:s.shift||0,v:s.variant||0}; if(s.ficha) o.f = s.ficha; if(s.kind==='text') o.t = s.text; return o; });
     return b64enc(JSON.stringify({v:1,items:items}));
   }
   $('shareBtn').addEventListener('click',function(){
@@ -2076,7 +2099,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         library.forEach(function(s){ if(norm(cleanName(s.name))===key && (!found || (s.cat||'')===(it.c||''))) found = s; });
         function apply(s){
           if(it.k && !s.origKey) s.origKey = it.k;
-          s.shift = it.sh||0; s.variant = it.v||0;
+          s.shift = it.sh||0; s.variant = it.v||0; if(it.f) s.ficha = it.f;
           newSet.push(s); return saveSong(s);
         }
         if(found) return apply(found);
@@ -2324,6 +2347,264 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   }
   $('stageBtn').addEventListener('click',function(){ this.blur(); setStage(!document.body.classList.contains('stage')); });
   try{ if(localStorage.getItem('stage')==='1') setStage(true,true); }catch(e){}
+
+
+  // ---------- Ficha de la canción ----------
+  function fiUI(s){
+    var f = s && s.ficha, line = $('fiLine'), parts = [];
+    $('fiBtn').hidden = !s;
+    if(!f){ line.hidden = true; line.innerHTML = ''; return; }
+    if(f.bpm) parts.push('<span><b>BPM</b>'+esc2(String(f.bpm))+'</span>');
+    if(f.entrada) parts.push('<span><b>Entrada</b>'+esc2(f.entrada)+'</span>');
+    if(f.salida) parts.push('<span><b>Salida</b>'+esc2(f.salida)+'</span>');
+    if(f.pad) parts.push('<span><b>Pad</b>'+esc2(f.pad)+'</span>');
+    if(f.notas) parts.push('<span><b>Notas</b>'+esc2(f.notas)+'</span>');
+    line.innerHTML = parts.join(''); line.hidden = !parts.length;
+  }
+  $('fiBtn').addEventListener('click',function(){
+    this.blur(); var s = songs[current]; if(!s) return; var f = s.ficha || {};
+    $('fiTitle').textContent = '📝 Ficha · '+cleanName(s.name);
+    $('fiBpm').value = f.bpm||''; $('fiIn').value = f.entrada||''; $('fiOut').value = f.salida||''; $('fiPad').value = f.pad||''; $('fiNotes').value = f.notas||'';
+    $('fiModal').hidden = false; setTimeout(function(){ $('fiBpm').focus(); },50);
+  });
+  $('fiCancel').addEventListener('click',function(){ $('fiModal').hidden = true; });
+  $('fiModal').addEventListener('click',function(e){ if(e.target===$('fiModal')) $('fiModal').hidden = true; });
+  $('fiModal').addEventListener('keydown',function(e){ if(e.key==='Escape') $('fiModal').hidden = true; });
+  $('fiSave').addEventListener('click',function(){
+    var s = songs[current]; if(!s) return;
+    var f = {bpm:parseInt($('fiBpm').value,10)||0, entrada:$('fiIn').value.trim(), salida:$('fiOut').value.trim(), pad:$('fiPad').value.trim(), notas:$('fiNotes').value.trim()};
+    s.ficha = (f.bpm||f.entrada||f.salida||f.pad||f.notas) ? f : null;
+    saveSong(s).then(function(){ $('fiModal').hidden = true; fiUI(s); toast('Ficha guardada'); }).catch(function(){ toast('No se pudo guardar la ficha'); });
+  });
+
+  // ---------- Contenido: patrones, fills, pads, misiones y glosario ----------
+// armonia_data.js — datos para la app de teclado (Katarsis / iglesia). Solo datos, sin lógica.
+// Fuentes: informes blues-gospel.md, worship.md y profesor.md. Todo en Do mayor como ejemplo.
+// c: g=gospel, w=worship, b=blues, s=soul. l: 1 básico, 2 intermedio, 3 avanzado.
+
+var PATRONES = [
+ {n:'Balada 12/8: cuatro golpes suaves', c:'g', l:1, d:'Cuatro golpes parejos y suaves por compás: es el latido de las baladas lentas. No agregues nada hasta que la canción te lo pida.', r:'Contá 12 corcheas: izquierda Do2 en el 1 y Sol2 en el 7, con un pedal por compás. Derecha: la tríada en el 1, el 4, el 7 y el 10, alternando inversiones, con volumen bajo.', e:'Do – Sol/Si – Lam – Fa: izquierda Do2 (1) y Sol2 (7); derecha Mi4-Sol4-Do5 y Sol4-Do5-Mi5 en cada golpe.'},
+ {n:'Balada 12/8: ola arpegiada', c:'g', l:2, d:'En vez de golpear el acorde, lo “desenrollás” de abajo para arriba, tres notas por tiempo. Con pedal suena a arpa; sirve para intros y puentes tranquilos cuando no hay guitarra.', r:'Izquierda: Do2 en el 1, que queda sonando todo el compás con pedal. Derecha: Sol-Do-Mi en cada grupo de tres corcheas, siempre subiendo y con la nota más alta un poquito más fuerte.', e:'Cmaj9 – Fmaj9 – Lam7 – Sol7sus4: izquierda Do2; derecha Sol4-Do5-Mi5 repetido (si te pisa a la voz, tocá solo las dos primeras notas).'},
+ {n:'12/8 pulsante (estilo Unchained Melody)', c:'g', l:1, d:'La tríada repetida en las 12 corcheas, con acento solo en algunas. Levanta una balada sin cambiar el tempo y es típico de los coros de gospel-soul.', r:'Derecha: el acorde en las 12 corcheas, fuerte en el 1-4-7-10 y suave en el resto. Izquierda: la fundamental en el 1 y en el 7, y en el 10 una nota de paso hacia el acorde que viene.', e:'Do – Lam – Fa – Sol: izquierda Do2 en el 1 y el 7; derecha Mi4-Sol4-Do5 repetida, con acento en 1-4-7-10 (si todas suenan igual, parece una máquina de coser).'},
+ {n:'Sincopado 3-3-2 con anticipación', c:'w', l:2, d:'El ritmo del worship moderno: el acorde cae en el 1, en el “y” del 2 y en el 4. Si además tocás el acorde nuevo una corchea antes, suena moderno y no “escolar”.', r:'Contá 1-2-3 / 4-5-6 / 7-8: derecha corta en la corchea 1, en la 4 y en la 7; izquierda con la fundamental larga. El acorde que cambia entra en la corchea 8, un “y” antes. Medio pedal, soltando entre golpes.', e:'Do – Sol – Lam – Fa: izquierda Do2 larga; derecha Mi4-Sol4-Do5 en el 1, en el “y” del 2 y en el 4; el Sol (Re4-Sol4-Si4) entra en el “y” del 4.'},
+ {n:'Anticipo (push al “y” del 4)', c:'w', l:2, d:'Coro o pre-coro con energía: el empuje del cambio de acorde llega un “y” antes del compás siguiente. Es el truco para que la banda “levante” sin subir el volumen.', r:'Derecha: el acorde actual en el 1 y en el 3; en el “y” del 4 ya tocás el acorde siguiente. Izquierda: fundamental y quinta en el 1. Pedal en cada golpe.', e:'Do → Sol: Mi4-Sol4-Do5 en el 1 y en el 3; en el “y” del 4 entra el Sol con Re4-Sol4-Si4. Izquierda Do2+Sol2.'},
+ {n:'Motown / gospel upbeat', c:'s', l:2, d:'Piano de celebración: manos duras y muñecas sueltas, como en Oh Happy Day. Sirve para aleluyas y cierres de domingo. Va seco, sin pedal.', r:'Izquierda: octavas en negras; en el último tiempo, un paso hacia el bajo siguiente. Derecha: el acorde en 8 corcheas repetidas, con acento en el 2 y el 4 (la caja). Un fill de 2 notas en el último compás de cada cuatro.', e:'Do – Fa – Do – Sol: izquierda Do2-Do3 en negras; derecha Mi4-Sol4-Do5 en corcheas, fuerte en el 2 y el 4.'},
+ {n:'Shuffle de blues (boogie)', c:'b', l:2, d:'Versión blues de himnos (Cara a cara, Porque Él vive). La izquierda hace el boogie y la derecha pega golpes secos. Se toca sin pedal para que suene limpio.', r:'Izquierda: una nota por corchea con swing (Do-Mi-Sol-La-Sib-La-Sol-Mi). Derecha: golpes cortos en el 2 y el 4 con la 3ª y la ♭7ª del acorde; entre frases, una frase de pentatónica menor con blue note.', e:'Do7 – Fa7 – Do7 – Sol7: izquierda Do2-Mi2-Sol2-La2-Sib2-La2-Sol2-Mi2; derecha Mi4+Sib4 cortos en el 2 y el 4. Al cambiar de acorde, la izquierda va a su fundamental.'},
+ {n:'Corcheas pulsadas (“bomba”)', c:'w', l:2, d:'Ritmo fuerte para el puente o el final del crescendo. Todo el compás en corcheas parejas, con pedal hundido, para que suene grande.', r:'Derecha: la tríada en 8 corcheas parejas, con acento (más fuerte) en el 2 y el 4. Izquierda: fundamental y octava en el 1 y el 3. Pedal hundido, y lo cambiás cuando cambia la raíz.', e:'Do: izquierda Do2+Do3 en el 1 y el 3; derecha Mi4-Sol4-Do5 en las 8 corcheas, fuerte en el 2 y el 4.'},
+ {n:'Tríada + octava (pad grande)', c:'g', l:1, d:'Un sonido enorme con muy pocas notas. Es solo para el pico del último coro o el final del puente; si lo usás en el verso, no te queda adónde subir.', r:'Un golpe fuerte por compás con pedal. Izquierda: fundamental y quinta abierta dos octavas bajo el Do central. Derecha: la tríada con la nota más alta duplicada una octava abajo.', e:'Do: izquierda Do2+Sol2; derecha Sol4-Do5-Mi5 + Mi4. Fuerte y con pedal.'},
+ {n:'Pared (coro lleno)', c:'w', l:2, d:'Coro grande, f-ff. La derecha marca todos los tiempos con el Do alto sumado, y la izquierda llena con fundamental, quinta y octava.', r:'Izquierda: Do2-Sol2-Do3 juntos en el 1 y el 3. Derecha: la tríada con el Do6 arriba en cada negra, y relleno de corcheas en el 4 y en el “y” del 4. Pedal en cada golpe.', e:'Do: izquierda Do2+Sol2+Do3; derecha Mi4-Sol4-Do5 + Do6 en cada negra.'},
+ {n:'Tríadas sobre bajo (slash chords)', c:'g', l:2, d:'La manera más rápida de sonar “producido”: el bajo da la fundamental y la derecha pinta el color con una tríada que no es la del bajo.', r:'Izquierda: una sola nota grave. Derecha: una tríada ajena, un golpe largo por compás con pedal. Probalo moviendo solo la derecha.', e:'Bajo Do2 con tríada de Sol (Sol-Si-Re), de Re (Re-Fa#-La), de Sib (Sib-Re-Fa) o de Fa; con bajo Sol2, tríada de Fa o de Re menor.'},
+ {n:'Cuartas apiladas (pad abierto)', c:'w', l:2, d:'Colchón para la oración, cuando el pastor habla y la banda cae. Sin tercera no suena ni triste ni alegre: sostiene el clima sin definirlo.', r:'Izquierda: la fundamental en octava, una vez por compás. Derecha: tres notas a distancia de cuarta justa, que se mueven todas igual (en paralelo) cuando cambia el acorde.', e:'Do: izquierda Do2; derecha Re4-Sol4-Do5, y después Sol4-Do5-Fa5 moviéndolas en paralelo. Progresión: Csus2 – Gsus4 – Am7 – Fmaj9.'},
+ {n:'Poco y a tiempo: espacio para la voz', c:'g', l:1, d:'El recurso más fácil y más gospel: si la cantante canta, tu mano derecha descansa; cuando termina la frase, respondés. Es la llamada y respuesta.', r:'Izquierda: fundamental larga, sin adornos. Derecha: un acorde largo en el 1 de cada compás; en los silencios de la voz, un fill corto de 2 a 4 notas.', e:'Do – Sol – Lam – Fa: izquierda Do2; derecha Mi4-Sol4-Do5 largo en el 1 y, entre frases, un fill corto.'},
+ {n:'Colchón (redondas)', c:'w', l:1, d:'Un acorde largo por compás, muy suave. Para intro, oración y fondo de predicación (pp-p).', r:'Un solo golpe por compás en ambas manos. Pisá el pedal justo después del golpe y cambialo en el compás siguiente.', e:'Do: izquierda Do2+Sol2; derecha Mi4-Sol4-Do5 (o solo Sol4-Do5), sostenido todo el compás.'},
+ {n:'Dyad 5-9 alternado', c:'w', l:2, d:'Dos notas abiertas (la 5ª y la 9ª) que alternan sin parar. Sin tercera no es ni mayor ni menor: el acorde lo define el bajo. Ideal para intros e interludios (p).', r:'Izquierda: fundamental y quinta, y las dejás sonar. Derecha: dos notas alternadas en corcheas durante todo el compás. Pedal hundido mientras el bajo no cambie.', e:'Con izquierda Do2+Sol2: derecha Sol4-Re5-Sol4-Re5-Sol4-Re5-Sol4-Re5.'},
+ {n:'Respiración (blancas)', c:'w', l:1, d:'Dos acordes largos por compás, con una inversión distinta cada vez. Para versos lentos y baladas (p): el piano “respira” sin estorbar.', r:'Izquierda: fundamental en el 1 y quinta en el 3. Derecha: la tríada en el 1 y otra inversión en el 3. Cambiás el pedal en el 3.', e:'Do: izquierda Do2 (1) y Sol2 (3); derecha Mi4-Sol4-Do5 (1) y Sol4-Do5-Mi5 (3).'},
+ {n:'Negras (coro marcha)', c:'w', l:1, d:'Un golpe en cada tiempo: da el paso firme de un pre-coro o de un coro tipo marcha (mf).', r:'Derecha: la tríada en cada negra. Izquierda: fundamental y octava en el 1 y en el 3. Pedal en cada negra mientras el bajo no cambie.', e:'Do: izquierda Do2+Do3 (1 y 3); derecha Mi4-Sol4-Do5 en cada tiempo.'},
+ {n:'Arpegio de izquierda 1-5-8-5', c:'w', l:2, d:'La mano izquierda camina por fundamental, quinta y octava, y la derecha sostiene el acorde. Para baladas y versos (p-mp).', r:'Izquierda: ocho corcheas en el vaivén fundamental-quinta-octava-quinta, todo el compás. Derecha: el acorde sostenido. Pedal hundido porque el arpegio y el acorde suenan juntos.', e:'Do: izquierda Do2-Sol2-Do3-Sol2-Do2-Sol2-Do3-Sol2; derecha Mi4-Sol4-Do5 sostenido.'},
+ {n:'Arpegio de derecha “fuente”', c:'w', l:2, d:'La derecha dibuja una pequeña fuente que sube y baja, para intros e interludios (p-mp).', r:'Derecha: ocho corcheas parejas subiendo y bajando (1-5-8-10-8-5-3-5). Izquierda: fundamental en el 1 y quinta en el 3. Pedal hundido todo el compás.', e:'Do: derecha Do4-Sol4-Do5-Mi5-Do5-Sol4-Mi4-Sol4; izquierda Do2 (1) y Sol2 (3).'},
+ {n:'Acorde rodado con cola', c:'w', l:3, d:'Para momentos de oración (p): el acorde se “rueda” de abajo hacia arriba y al final una nota de paso anuncia el acorde que viene.', r:'Izquierda: fundamental y quinta, sostenidas. Derecha: rodado rápido en el 1 y, en el “y” del 4, una nota de paso medio tono por debajo de la voz superior del próximo acorde.', e:'Do: izquierda Do2+Sol2; derecha rodado Do4 → Mi4 → Sol4 → Do5 en el 1, con pedal.'}
+];
+
+var FILLS = [
+ {n:'Slide de gracia a la 3ª', d:'Tiempo 4, para entrar al compás siguiente o para arrancar una frase.', t:'Mib (muy corta) – Mi – Sol – Do. Caé en el Mib (tecla negra) y deslizá el mismo dedo hasta el Mi (blanca).', m:[63,64,67,72], g:[0.25,0.75,1,2]},
+ {n:'Bajada de pentatónica mayor', d:'Al final de una frase, para caer sobre el 1 del compás siguiente.', t:'Sol – Mi – Re – Do – La – Sol (seis corcheas con swing). La última cae en el tiempo fuerte.', m:[79,76,74,72,69,67], g:[0.5,0.5,0.5,0.5,0.5,1]},
+ {n:'Terceras descendentes', d:'Un pasaje de un compás entero en una repetición de coro.', t:'Mi-Do, Re-Si, Do-La, Si-Sol (pares de terceras que bajan por grados) y después aterrizás en Mi – Sol – Do.', m:[76,72,74,71,72,69,71,67,64,67,72], g:[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,1]},
+ {n:'Subida de blues', d:'Hueco de un compás en un blues sobre Do7: sube del I al V.', t:'Do – Mib – Fa – Fa# – Sol – Sib – Do (escala de blues). Dejá el Fa# (blue note) un instante más largo.', m:[60,63,65,66,67,70,72], g:[0.5,0.5,0.5,0.75,0.5,0.5,1.5]},
+ {n:'Aproximación cromática al IV', d:'Último tiempo de un compás de Do que va a Fa.', t:'Sol – Lab – La. Dos pasos de medio tono que aterrizan en la 3ª del Fa.', m:[67,68,69], g:[0.5,0.5,1]},
+ {n:'Ola de Cmaj9', d:'Intros y puentes en 12/8: un compás entero sobre Cmaj9.', t:'Do – Sol – Do – Mi – Sol – Si – Re – Mi, subiendo en corcheas con pedal. Soltalo en el último tiempo para limpiar.', m:[48,55,60,64,67,71,74,76], g:[0.5,0.5,0.5,0.5,0.5,0.5,0.5,1]},
+ {n:'Cierre amén (Fa – Fam – Do)', d:'Final de coro o de canción: F – Fm6 – C.', t:'Voz de arriba: La – Lab – Sol (derecha: Do-Fa-La, Do-Fa-Lab, Do-Mi-Sol; el Do de abajo queda fijo). Con Fm6 sumá el Re.', m:[69,68,67], g:[1,1,2]},
+ {n:'Bajada de G7 hacia el I', d:'Compás 12 de un blues, o último compás antes de repetir la vuelta.', t:'Re – Si – Sol – Fa – Re – Si – Sol (arpegio descendente de Sol7). El último Sol empuja al Do del 1.', m:[74,71,67,65,62,59,55], g:[0.5,0.5,0.5,0.5,0.5,0.5,1]}
+];
+
+var PADS = [
+ {n:'Principio: el pad es el piso', d:'El pad pone la fundamental y la quinta (a veces la 9ª) y no toca la tercera: la define el piano o la guitarra. Así un mismo pad sirve para mayor y menor, y no pelean dos terceras en la misma zona. Registro: entre Do2 y Do4; por encima compite con el piano y con la voz.', e:'Do2 + Sol2 (y Re3 arriba si querés la 9ª).'},
+ {n:'Balada lenta (hasta 70 BPM)', d:'Fundamental y quinta en el registro grave; la 9ª arriba solo en la intro. Cambia con cada acorde, pero con un tiempo de atraso (legato). Piano: patrones de respiración, arpegio de izquierda o balada 12/8.', e:'Do2+Sol2 y, en la intro, Re3 arriba; después Fa2+Do3, Sol2+Re3.'},
+ {n:'Medio tiempo (70 a 100 BPM)', d:'En el verso, un pad fijo en la tónica casi sin cambiar. En el coro, fundamental y quinta por cada acorde, siguiendo al bajo. Piano: sincopado 3-3-2, negras o anticipo.', e:'Verso: Do2+Sol2 fijo. Coro: Fa2+Do3 – Sol2+Re3 – La2+Mi3.'},
+ {n:'Rápido o celebración (más de 110 BPM)', d:'Tónica fija o apagado en los versos, y en el coro fundamental y octava. Casi nunca cambia: el que marca el pulso es el piano. Piano: negras, corcheas pulsadas o pared.', e:'Coro: Do2+Do3 fijo; al cambiar de acorde, Fa2+Fa3 o Sol2+Sol3.'},
+ {n:'Himno clásico', d:'Acá el pad sí lleva tercera (suena a órgano o cuerdas) porque suele haber pocas guitarras. Cambia con cada acorde, siguiendo los bajos escritos. Piano: tríadas en negras.', e:'Do3-Mi3-Sol3; después Fa3-La3-Do4, Sol3-Si3-Re4.'},
+ {n:'Oración, ministración o espontánea', d:'Un Isus2 o Imaj9 con fundamental, quinta y 9ª. Cambia cada 4 a 8 compases, no antes. Piano: colchón, dyad 5-9 o acorde rodado.', e:'Do2 + Sol2 + Re3 (Csus2) sostenido varios compases.'},
+ {n:'Comunión o cierre', d:'Arrancás con la tónica y la quinta, seguís solo con la tónica y apagás con un fade de 8 a 10 segundos. Piano: colchón de redondas.', e:'Do2+Sol2 → solo Do2 → fade de 8 a 10 segundos.'},
+ {n:'Puente en crescendo', d:'Entra en el compás 3 con fundamental y quinta, sube con el pedal de expresión y baja en el último compás para que el silencio antes del coro haga impacto. Piano: los 4 escalones del puente.', e:'Do2+Sol2 desde el compás 3; sube hasta el compás 7 y baja en el 8.'},
+ {n:'Con bajista o sin bajista', d:'Con bajista, el pad sube una octava o toca solo la quinta, para no duplicar el bajo. Sin bajista, el pad pone la fundamental en Do2.', e:'Con bajista: Sol2+Do3 para el Do. Sin bajista: Do2+Sol2.'},
+ {n:'Acordes con bajo (slash)', d:'Cuando el acorde tiene bajo distinto, el pad toca solo la nota del bajo (sin quinta), igual que tu mano izquierda. Así el pad no choca con la melodía y el color lo pone el piano.', e:'Sol/Si: pad solo en Si2. Do/Mi: pad solo en Mi2.'},
+ {n:'Entrar y salir con el pad', d:'El pad entra uno o dos compases antes del primer acorde y, en el final, tapa el silencio y es el que cierra. Con ataque lento (de 0,6 a 1,2 segundos) y release largo: si ataca corto suena a órgano pisado. Tiene que hacer lo opuesto al piano: si el piano hace pared, el pad baja; si el piano se aquieta, el pad sube.', e:'Dos compases de Do2+Sol2 antes de la entrada; en el final, Do2 sostenido mientras el piano se apaga.'},
+ {n:'Pasar de una canción a otra con el pad', d:'Buscá la nota que las dos tonalidades comparten y dejala sonando en el pad. Desde Do: a Fa (+5), pad en Do (el pasaje más fácil); a Sol (+7), pad en Sol; a La (+9) o a Mi (+4), pad en Mi. A Re (+2) o a Mib (+3), pad en Sol. A Lab (+8) o a Sib (+10), pad en Do. En +1, +6 y +11 no hay nota común: cortá limpio con un tiempo de silencio.', e:'Do → Fa: pad en Do sostenido, y entrás en Fa. Do → Sol: pad en Sol, y piano Re → Sol.'}
+];
+
+var MISIONES = [
+ {n:1, l:1, t:'Anotar los grados del coro', d:'Abrí el coro de Glorioso día (o la canción que elijas) y anotá los grados en números romanos. Listo cuando decís los 4 grados de memoria.', c:'Ver acordes (Diagrama) y Tonos y grados, en Glorioso día'},
+ {n:2, l:1, t:'Tríadas I, IV y V en Do, Sol y Fa', d:'Con la mano derecha, tocá las tríadas del I, IV y V en Do, Sol y Fa (en Do: Do, Fa, Sol; en Sol: Sol, Do, Re; en Fa: Fa, Sib, Do). Listo cuando tocás I – IV – V – I sin dudar en los tres tonos.', c:'Acordes (Explorador de acordes)'},
+ {n:3, l:1, t:'Raíz y tríada en Ofrenda', d:'En Ofrenda, despacio: raíz con la izquierda y tríada con la derecha. Si tocás con bajista, la raíz una octava más arriba. Listo cuando tocás una estrofa sin cortes.', c:'Partituras, en Ofrenda'},
+ {n:4, l:1, t:'Inversión más cercana: mano casi quieta', d:'Tocá I V vi IV con la inversión más cercana (en Do: Mi-Sol-Do, Re-Sol-Si, Mi-La-Do, Fa-La-Do). Hacé 4 vueltas. Listo cuando la mano nunca salta más de un tono.', c:'Practicar, categoría Para aprender: “Mano casi quieta”, en Enciende una luz (o en Do)'},
+ {n:5, l:2, t:'Nota común: acordes vecinos', d:'Elegí dos acordes vecinos (por ejemplo Do y La menor) y dejá quietas las notas que comparten. Mové solo la nota que cambia. Listo cuando en cada cambio se mueve un solo dedo.', c:'Practicar, “Acordes vecinos (cambia una sola nota)”, y Cambiar un acorde por otro'},
+ {n:6, l:2, t:'Suspender y resolver', d:'Al final de un verso de Enciende una luz, cambiá la 3ª por la 4ª y después resolvela (en Do: Do-Fa-Sol y luego Do-Mi-Sol). Listo cuando se escucha la “respiración” sin perder el tiempo.', c:'Practicar, categoría Para aprender: “Suspender y resolver”, en Enciende una luz'},
+ {n:7, l:2, t:'Versión Ambiente con add9', d:'Armá Mi esperanza está en Jesús en la Versión Ambiente y probá el colchón add9. Compará con el original. Listo cuando elegís dónde queda mejor y decís por qué.', c:'Versión Ambiente y Practicar (Colchón add9), en Mi esperanza está en Jesús'},
+ {n:8, l:2, t:'Subida de bajo hacia el V', d:'Antes del coro de Glorioso día, tocá I – I/iii – IV – V con el bajo subiendo (Do-Mi-Fa-Sol) y la derecha casi quieta. Listo cuando hacés 8 compases así.', c:'Practicar, categoría Gospel: “Subida de bajo hacia el V”, en Glorioso día'},
+ {n:9, l:3, t:'Pedal de tónica', d:'Sostené la raíz con la izquierda mientras la derecha cambia de acorde encima. Listo cuando sostenés la raíz durante 16 compases.', c:'Versión Bajo fijo y Practicar, “Pedal de tónica”'},
+ {n:10, l:3, t:'Pad de oración con suspendidos', d:'En Ofrenda, armá un pad de oración con acordes suspendidos (sus2 y sus4). Listo cuando tocás 2 minutos sin cortar el sonido.', c:'Practicar, “Pad de suspendidos”, en Ofrenda'},
+ {n:11, l:3, t:'Intro de 4 compases', d:'Armá una intro de 4 compases: pedal de tónica en la izquierda y arpegio 1-5-8-5 en la derecha, sobre los acordes del coro. Listo cuando la intro termina justo en el tempo de la canción.', c:'Practicar, “Colchón add9”, en Enciende una luz'},
+ {n:12, l:3, t:'Tres finales', d:'Probá tres finales: la cadencia del Amén, el Final de luz y la cadencia 6/4. Listo cuando elegís un final por canción.', c:'Practicar, categoría Cadencias'},
+ {n:13, l:4, t:'Séptimas en vez de tríadas', d:'Tocá m7 y maj7 en lugar de tríadas (por ejemplo, el vi como Lam7 y el I como Cmaj7), con la raíz en la izquierda. Listo cuando lo hacés sin trabarte.', c:'Practicar, “Descenso soul”, y Versión Ambiente'},
+ {n:14, l:4, t:'Notas guía en ii – V – I', d:'Tocá un ii – V – I mayor con solo la 3ª y la 7ª de cada acorde. Listo cuando la 7ª baja a la 3ª del acorde siguiente en Do, Fa y Sol.', c:'Practicar, categoría Jazz: “ii – V – I mayor”'},
+ {n:15, l:4, t:'Adornar con una pentatónica', d:'Entre las líneas del canto, tocá frases de 2 o 3 notas de la pentatónica mayor del tono. Listo cuando hacés 3 frases que no tapan la voz.', c:'Practicar, “Adornar con una sola pentatónica”, y Escalas'},
+ {n:16, l:4, t:'IV menor, la sombra gospel', d:'En el último coro de una canción, cambiá una vez el Fa mayor por Fa menor (la baja a Lab). Listo cuando el cambio se nota.', c:'Practicar, categoría Gospel: “IV menor (sombra gospel)”'},
+ {n:17, l:5, t:'Dominante secundario', d:'Tocá Mi7 antes de La menor para que el acorde “tire” hacia el vi. Listo cuando se escucha el tirón.', c:'Practicar, categoría Para aprender: “Dominante secundario”'},
+ {n:18, l:5, t:'ii – V de paso hacia el IV', d:'En un coro, antes de llegar al Fa tocá su ii – V de paso (Sol m7 – Do7 – Fa). Listo cuando lo hacés sin perder el tempo.', c:'Practicar, categoría Para aprender: “ii – V de paso”'},
+ {n:19, l:5, t:'Medley y subida de medio tono', d:'Pasá de Enciende una luz a Ofrenda con el V7 del tono nuevo y, aparte, subí medio tono el último coro de Glorioso día con el V7 del tono nuevo. Listo cuando el medley de dos canciones sale sin silencio.', c:'Pasar a otra canción (Transiciones), en Enciende una luz, Ofrenda y Glorioso día'},
+ {n:20, l:5, t:'Arreglo completo', d:'Armá un arreglo completo de Mi esperanza está en Jesús: intro, verso, pre-coro, coro y final. Grabalo. Listo cuando lo escuchás con alguien del equipo.', c:'Todo lo anterior, en Mi esperanza está en Jesús'}
+];
+
+var GLOSARIO = [
+ {t:'Acorde con bajo (slash)', d:'C/E es un acorde de Do con Mi en el bajo. Lo que va después de la barra es la nota grave.'},
+ {t:'Acorde vecino', d:'Acorde que comparte 2 notas con otro (Do y La menor). Se pueden cambiar uno por otro sin que se note el salto.'},
+ {t:'add9', d:'Tríada más la 9ª, sin 7ª. Es el sonido abierto típico de la alabanza moderna.'},
+ {t:'Bajo caminante', d:'El bajo sube o baja por grados entre dos acordes (Do – Mi – Fa – Sol). En inglés, walk-up o walk-down.'},
+ {t:'Cadencia y resolver', d:'Cierre de una frase con dos acordes (V – I, IV – I). Resolver es pasar de tensión a reposo (Sol7 a Do).'},
+ {t:'Conducción de voces / nota común', d:'Pasar de un acorde al otro moviendo cada nota lo menos posible. La nota que está en los dos acordes se queda quieta.'},
+ {t:'Disminuido (°) y semidisminuido (ø)', d:'Acordes tensos que piden moverse. El disminuido tiene 3ª menor y 5ª bemol (y en el dim7, una 6ª arriba); el semidisminuido, 3ª menor, 5ª bemol y 7ª menor.'},
+ {t:'Dominante secundario', d:'El V7 de otro acorde que no es el I. En Do, Mi7 es el V7 de La menor.'},
+ {t:'Escala y modo', d:'La escala es el mapa de 7 notas del tono; un modo es la misma escala empezando en otro grado (dórico, mixolidio…) y tiene su propio color.'},
+ {t:'Extensiones y alteraciones', d:'Notas que se agregan arriba (9ª, 11ª, 13ª) y sus variantes con b o # (b9, #11). Dan color, pero no se tocan todas juntas.'},
+ {t:'Función (tónica, subdominante, dominante)', d:'El rol del acorde. Tónica (I) es la casa y el reposo; subdominante (IV) es salir de casa; dominante (V) es la tensión que pide volver.'},
+ {t:'Fundamental (raíz)', d:'La nota que le da el nombre al acorde. En un acorde de Do, es Do.'},
+ {t:'Grado', d:'El número que ocupa un acorde dentro del tono. En Do: I = Do, IV = Fa, V = Sol.'},
+ {t:'Intercambio modal (acorde prestado)', d:'Un acorde tomado del tono menor del mismo nombre. En Do mayor: Fa menor, Lab y Sib.'},
+ {t:'Intervalo y 3ª', d:'Distancia entre dos notas. La 3ª decide el carácter: 3ª mayor es alegre (Do-Mi); 3ª menor es oscura (Do-Mib).'},
+ {t:'Inversión', d:'El mismo acorde con otra nota abajo. Do-Mi-Sol, Mi-Sol-Do (1ª inversión) y Sol-Do-Mi (2ª).'},
+ {t:'Notas guía', d:'La 3ª y la 7ª. Si tocás esas dos, el acorde ya suena completo.'},
+ {t:'Números romanos', d:'La forma de escribir los grados. Mayúscula es acorde mayor (IV); minúscula es menor (vi). Sirven en cualquier tono.'},
+ {t:'Pad', d:'Sonido largo y suave de fondo (teclas con sustain o sonido de cuerdas).'},
+ {t:'Pedal de sustain', d:'El pedal derecho del teclado, el del pie: deja sonar las notas. No es lo mismo que el pedal de tónica.'},
+ {t:'Pedal de tónica (nota pedal)', d:'Una nota grave que se mantiene mientras los acordes de arriba cambian.'},
+ {t:'Pentatónica', d:'Escala de 5 notas que casi no choca con nada. Sirve para adornar y llenar espacios.'},
+ {t:'Séptima (7ª)', d:'Nota extra arriba de la tríada. “7” es la séptima menor (acorde dominante, pide resolver); “maj7” es la séptima mayor (suave y abierta).'},
+ {t:'Suspendido (sus2 / sus4)', d:'La 3ª se reemplaza por la 2ª o la 4ª. El acorde queda “colgado” y se resuelve a la 3ª (el Fa baja a Mi).'},
+ {t:'Sustitución tritonal', d:'Cambiar el V7 por el bII7 (Sol7 por Reb7). Comparten las notas que importan y el bajo baja por semitono.'},
+ {t:'Tonalidad', d:'La “casa” de la canción (Sol mayor, La menor…). Cada mayor tiene un relativo menor con las mismas notas (Do mayor y La menor). El círculo de quintas ordena los 12 tonos por cercanía.'},
+ {t:'Tríada', d:'Acorde de 3 notas apiladas de a tercera: fundamental, 3ª y 5ª (Do-Mi-Sol).'},
+ {t:'Turnaround (vuelta)', d:'Progresión corta (típicamente I – vi – ii – V) que vuelve al inicio y se puede repetir.'},
+ {t:'Vamp', d:'Dos o tres acordes que se repiten para sostener un momento (oración, ministración).'},
+ {t:'Voicing', d:'Cómo repartís las notas de un acorde entre las dos manos y en qué octava.'}
+];
+
+var LECCIONES = [
+ {t:'Leer en grados', d:'Un acorde no es “Sol”: es “el V del tono de Do”. Si pasás los acordes a números romanos, la misma vuelta (I – V – vi – IV) vale en cualquier tono. Mayúscula es mayor, minúscula es menor. Abrí una canción, tocá “Diagrama” y anotá los grados: es la mejor tarea de la semana.'},
+ {t:'Las tres funciones', d:'Hay acordes “casa” (I, vi, iii), acordes “camino” (IV, ii) y acordes “tensión” (V, vii°). Casi toda progresión es: salir de casa, pasar por el camino, tensarse y volver. Cuando sepas qué función cumple cada acorde, vas a poder cambiarlos por otros de la misma función.'},
+ {t:'Tríada e inversiones', d:'Do-Mi-Sol, Mi-Sol-Do y Sol-Do-Mi son el mismo acorde. La mano derecha elige la inversión más cercana a donde estaba. Regla de oro: la mano no debería saltar más de un tono por nota. Si salta, cambiá la inversión.'},
+ {t:'Mano izquierda y banda', d:'En solo, la izquierda toca la raíz (y su octava). En banda con bajista, no lo dupliques: tocá la raíz una octava más arriba, o quinta-octava, o descansá. Menos notas, más espacio, mejor mezcla.'},
+ {t:'Nota común: la que no se mueve', d:'Entre Do y La menor se repiten Do y Mi. Dejalos quietos y mové solo el Sol (a La). Cuanto más quieto el resto, más profesional suena. Contá, en cada cambio, cuántos dedos se quedan.'},
+ {t:'3ª y 7ª: las notas guía', d:'Las dos notas que más definen un acorde son la 3ª (mayor o menor) y la 7ª. Entre dos acordes que se siguen, la 7ª suele bajar a la 3ª del siguiente (el Fa de Sol7 baja al Mi de Do). Tocá solo esas dos y escuchá cómo ya “cierra”.'},
+ {t:'Suspender y resolver', d:'Un acorde sus4 cambia la 3ª por la 4ª. Queda colgado y, cuando la 4ª baja a la 3ª, el acorde “respira”. En Do: Do-Fa-Sol y después Do-Mi-Sol. Siempre baja un semitono. Sirve para alargar un acorde sin aburrir.'},
+ {t:'add9 y 6ª: color sin cambiar la función', d:'Sumar la 9ª (Re sobre Do) abre el acorde sin cambiar su función. Sumar la 6ª al IV (Fa-La-Do-Re) da el color gospel. Si la melodía está justo en la 3ª del acorde, la 9ª (un tono abajo) puede rozar: escuchá antes. Probalo con la versión “Ambiente”.'},
+ {t:'Tríada de la 3ª sobre la fundamental', d:'Un acorde de 4 notas se arma con la fundamental abajo y una tríada arriba: Fmaj7 = Fa + La menor; Dm7 = Re + Fa mayor; G7 = Sol + Si disminuido. Es el truco más rápido para tocar séptimas sin pensar nota por nota.'},
+ {t:'Bajo caminante', d:'Entre dos acordes podés hacer que el bajo suba o baje por grados: Do-Mi-Fa-Sol o Do-Si-La-Sol. La derecha casi no se mueve. Así se llega a un coro con impulso. Frená en el último acorde y dejalo respirar.'},
+ {t:'Pedal de tónica', d:'La izquierda sostiene la tónica y la derecha cambia de acorde encima. Suena suave y sirve para pads, intros y cambios de canción. Con acordes lejanos al I (V, vii°) puede sonar tenso: usalo en momentos tranquilos.'},
+ {t:'Acorde vecino', d:'Dos acordes que comparten 2 notas se parecen: I y vi, IV y ii. Cambiar uno por otro mueve una sola nota. Usalo en el 2º coro para variar. Si la voz canta la 3ª del acorde original, escuchá antes que no choque.'},
+ {t:'Intercambio modal: el iv menor', d:'En Do mayor, cambiar el Fa mayor por Fa menor (Fa-Lab-Do) mueve una sola nota: La baja a Lab. Da un instante de sombra y vuelve la luz. Es el recurso más usado en himnos para emocionar.'},
+ {t:'Dominante secundario', d:'Si querés que un acorde “tire” más al siguiente, ponele su V7 antes: Mi7 antes de La menor, La7 antes de Re menor. Pasar de Em a E7 cambia el Sol por Sol# (y suma el Re). Es el primer paso hacia rearmonizar.'},
+ {t:'Intros, finales y subida de tono', d:'Intro: pedal de tónica + arpegio (1-5-8-5) con los acordes del coro. Final: IV – I (“Amén”) o IVmaj7 – Iadd9. Para subir medio tono: tocá el V7 del tono nuevo y entrá. Ejemplo: de Do a Reb, tocá Lab7 y entrás en Reb.'}
+];
+
+var ENTRADAS_SALIDAS = [
+ {n:'Entrada 1: pad de tónica', d:'Dos compases del I con la fundamental en octava (o con el pad solo) y la banda entra encima. Es la forma más fácil de entrar.', e:'Do2 + Do3 con pedal durante 2 compases (o pad Do2+Sol2); después entra el verso en Do.'},
+ {n:'Entrada 2: pasaje IV – #iv° – I/V o V7sus4 colgado', d:'Un pasaje que “pide” el primer acorde de la canción. El bajo camina Fa – Fa# – Sol y el Do cae en segunda inversión; o te quedás colgado en V7sus4 y entrás en el 1.', e:'Fa (La-Do-Fa) – Fa#dim7 (La-Do-Mib, bajo Fa#) – Do/Sol (Sol-Do-Mi, bajo Sol). Mantené el pedal hasta el Do/Sol.'},
+ {n:'Entrada 3: los últimos 2 compases del coro', d:'Tocás como intro los últimos 2 compases del coro, el turnaround de la propia canción, y la gente ya sabe dónde entrar.', e:'Si el coro termina en Fa – Sol, esos 2 compases son la intro y el verso arranca en Do.'},
+ {n:'Entrada 4: la quinta sola', d:'Tocás solo la quinta durante un compás y abrís el acorde completo en el 1 del verso.', e:'Sol – Re (quinta sola) un compás; en el 1 del verso abrís el Do: Do2 y Mi4-Sol4-Do5.'},
+ {n:'Entrada 5: piano solo con vamp, y entra la banda', d:'El piano toca solo los primeros 4 compases de la intro en vamp, repitiendo, hasta que la banda entra encima.', e:'Cadd9 – Gsus4 – Am7 – Fmaj9, repetido hasta que entra la banda.'},
+ {n:'Salida 1: amén (IV – iv6 – I)', d:'El cierre de iglesia, con ritardando de 2 compases. El último acorde se deja sonar con pedal hasta que el cantante o el director te suelte: nunca lo cortes vos.', e:'Fa – Fm6 (Fa-Lab-Do-Re) – Do/Sol – Sol7sus4 – Sol7 – Do. Frená desde el Fm6 y dejá el Do final largo.'},
+ {n:'Salida 2: outro flotante (IV – I)', d:'IV – I repetido 2 veces, con menos volumen cada vez. Es el cierre más suave: la gente puede seguir cantando u orando.', e:'Fmaj9 – Cadd9, dos veces cada vez más suave, con pedal a fondo. Terminá en Do con Sol-Re arriba.'},
+ {n:'Salida 3: tag', d:'Repetís la última frase 3 veces, bajando el volumen cada vez.', e:'Última frase sobre Do, tres veces: mf, p y pp.'},
+ {n:'Salida 4: corte seco con fermata', d:'Solo en canciones de celebración: cortás juntos en el golpe final, siguiendo al director.', e:'Último golpe: Do2+Sol2 y Mi4-Sol4-Do5; todos cortan a la vez.'},
+ {n:'Salida 5: pad con fade', d:'Hacés un ritardando en el último compás, sostenés la tónica con pedal y el pad la acompaña mientras baja de a poco durante 8 a 10 segundos.', e:'Do con pedal y pad Do2+Sol2; fade de 8 a 10 segundos.'},
+ {n:'Transición 1: mismo tono, colgarse del V', d:'Terminás la canción en IV – I/V y te quedás en V7sus4 con el bajo en la quinta. Ese acorde “pide” resolver: la banda cuenta y entra la canción nueva en el I, en el 1 del compás. Sirve para cambiar de tempo.', e:'Fa – Do/Sol – Sol7sus4, y entrás en Do.'},
+ {n:'Transición 2: subir medio tono (Do a Reb)', d:'El Lab7 es el V7 del Reb y comparte el Do con tu acorde de partida. El Do queda quieto en la derecha durante el Lab7 y recién en el Reb sube medio tono. Con dos tiempos de Lab7 alcanza.', e:'Do – Lab7 – Reb.'},
+ {n:'Transición 3: subir un tono (Do a Re)', d:'La7 es el V7 del Re: suena inevitable y casi no se nota el salto. La versión más prolija usa el Mi m7 de pivote: es iii en Do y ii en Re.', e:'Do – La7 – Re; o Do – Mim7 – La7 – Re.'},
+ {n:'Puente en 4 escalones (crescendo)', d:'Un ciclo de 8 compases en cuatro escalones de 2 compases: “aire” (pp), “cuerpo” (p-mp), “pulso” (mf) y “pared” (f-ff). Al final, el pad sostiene solo y hacés un silencio de una corchea en el último tiempo del compás 8: ese silencio hace el impacto antes del coro.', e:'Do – Fa – Sol – Lam7 (×2): izquierda Do2 → +Sol2 → +Do3; derecha Re4-Sol4 → Re4-Mi4-Sol4 → Do4-Mi4-Sol4 → + Sol5, con pedal a fondo.'}
+];
+
+
+  // ---------- Acompañar y Aprender ----------
+  var ACOM = {sub:'pat', cat:'all'}, APR = {sub:'mis'};
+  var CATN = {g:'Gospel', w:'Worship', b:'Blues', s:'Soul'}, LVN = {1:'Básico',2:'Intermedio',3:'Avanzado'};
+  var MISN = ['', 'Nivel 1 · Acordes con intención', 'Nivel 2 · Voicings y bajo', 'Nivel 3 · Conducción de voces', 'Nivel 4 · Colores y reharmonización', 'Nivel 5 · Arreglar y fluir'];
+  function misDone(){ try{ return JSON.parse(localStorage.getItem('misiones')||'[]'); }catch(e){ return []; } }
+  function misSave(a){ try{ localStorage.setItem('misiones',JSON.stringify(a)); }catch(e){} }
+  function subBar(attr,items,cur){
+    return '<div class="chips" style="margin:6px 0 10px">'+items.map(function(it){ return '<button '+attr+'="'+it[0]+'" class="'+(cur===it[0]?'on':'')+'" tabindex="-1">'+it[1]+'</button>'; }).join('')+'</div>';
+  }
+  function infoCard(n,badges,body){
+    return '<div class="hcard"><div class="hh">'+esc2(n)+(badges?' <small>'+badges+'</small>':'')+'</div>'+body+'</div>';
+  }
+  function tabAcom(){
+    var h = '<div class="hcard"><div class="hh">Acompañar <small>patrones, fills, pads y cómo entrar y salir</small></div><div class="hnote">Recursos para que tus teclas <b>respiren</b>. Todo está escrito en <b>Do mayor</b> como ejemplo: pasalo al tono de tu canción moviendo todo igual (si tocás en Re, sumá dos semitonos).</div>'
+      + subBar('data-asub',[['pat','Patrones'],['fill','Fills'],['pad','Pads'],['es','Entrar y salir']],ACOM.sub)+'</div>';
+    if(ACOM.sub==='pat'){
+      h += subBar('data-acat',[['all','Todos'],['w','Worship'],['g','Gospel'],['b','Blues'],['s','Soul']],ACOM.cat);
+      PATRONES.filter(function(p){ return ACOM.cat==='all' || p.c===ACOM.cat; }).forEach(function(p){
+        h += infoCard(p.n,'<span>'+(CATN[p.c]||'')+' · '+(LVN[p.l]||'')+'</span>',
+          '<div class="hnote">'+esc2(p.d)+'</div><div class="hnote"><b>Cómo tocarlo:</b> '+esc2(p.r)+'</div><div class="hnote"><b>Ejemplo:</b> '+esc2(p.e)+'</div>');
+      });
+    } else if(ACOM.sub==='fill'){
+      h += '<div class="hnote">Frases cortas para llenar un espacio entre frases de la letra. Tocá 🔊 para escucharlas (en Do mayor).</div>';
+      FILLS.forEach(function(f,i){
+        h += infoCard(f.n,'<button class="cc-play" data-fill="'+i+'" tabindex="-1">🔊 Escuchar</button>','<div class="hnote">'+esc2(f.d)+'</div><div class="hnote"><b>Notas:</b> '+esc2(f.t)+'</div>');
+      });
+    } else if(ACOM.sub==='pad'){
+      PADS.forEach(function(p){ h += infoCard(p.n,'','<div class="hnote">'+esc2(p.d)+'</div><div class="hnote"><b>Ejemplo:</b> '+esc2(p.e)+'</div>'); });
+    } else {
+      ENTRADAS_SALIDAS.forEach(function(p){ h += infoCard(p.n,'','<div class="hnote">'+esc2(p.d)+'</div>'+(p.e?'<div class="hnote"><b>Ejemplo:</b> '+esc2(p.e)+'</div>':'')); });
+    }
+    return h;
+  }
+  function tabApr(){
+    var done = misDone(), nd = MISIONES.filter(function(m){ return done.indexOf(m.n)>=0; }).length;
+    var h = '<div class="hcard"><div class="hh">Aprender <small>de a un paso, 10 minutos por día</small></div><div class="hnote">Una <b>misión por semana</b>. No hace falta correr: cuando una te sale sin pensar, marcala como hecha y pasá a la siguiente.</div>'
+      + subBar('data-apsub',[['mis','Misiones'],['lec','Lecciones'],['glo','Glosario']],APR.sub)+'</div>';
+    if(APR.sub==='mis'){
+      var next = MISIONES.filter(function(m){ return done.indexOf(m.n)<0; })[0];
+      h += '<div class="hcard"><div class="hh">Tu misión de esta semana <small>hechas: '+nd+' de '+MISIONES.length+'</small></div>'
+        + (next ? '<div class="hnote"><b>'+next.n+'. '+esc2(next.t)+'</b> <small style="color:var(--muted)">('+esc2(MISN[next.l]||'')+')</small></div><div class="hnote">'+esc2(next.d)+'</div><div class="hnote"><b>Dónde:</b> '+esc2(next.c)+'</div><div class="hrow"><button data-mis="'+next.n+'" tabindex="-1">✔ Ya la hice</button></div>' : '<div class="hnote">¡Completaste todas las misiones! Repetí las que más te cuesten.</div>')+'</div>';
+      var lastL = 0;
+      MISIONES.forEach(function(m){
+        if(m.l!==lastL){ lastL = m.l; h += '<div class="hnote" style="margin-top:10px"><b>'+esc2(MISN[m.l]||('Nivel '+m.l))+'</b></div>'; }
+        var d = done.indexOf(m.n)>=0;
+        h += '<div class="hcard" style="'+(d?'opacity:.55':'')+'"><div class="hh">'+m.n+'. '+esc2(m.t)+' <button data-mis="'+m.n+'" class="'+(d?'on':'')+'" tabindex="-1">'+(d?'✔ Hecha':'Marcar')+'</button></div><div class="hnote">'+esc2(m.d)+'</div><div class="hnote"><b>Dónde:</b> '+esc2(m.c)+'</div></div>';
+      });
+    } else if(APR.sub==='lec'){
+      LECCIONES.forEach(function(l){ h += infoCard(l.t,'','<div class="hnote">'+esc2(l.d)+'</div>'); });
+    } else {
+      h += '<div class="kb"><span>Buscar</span><input id="gloQ" placeholder="ej: voicing, pad, turnaround…" autocomplete="off" style="flex:1;min-width:160px"></div><div id="gloList">';
+      GLOSARIO.forEach(function(g){ h += '<div class="hcard glo" data-t="'+esc2(g.t.toLowerCase())+'"><div class="hh">'+esc2(g.t)+'</div><div class="hnote">'+esc2(g.d)+'</div></div>'; });
+      h += '</div>';
+    }
+    return h;
+  }
+  function playLine(ms,gs){
+    if(document.body.classList.contains('stage')) return;
+    var ac = audio(); if(!ac){ toast('Este navegador no permite sonido'); return; }
+    var t = ac.currentTime + 0.05, beat = 0.42;
+    ms.forEach(function(m,i){
+      var dur = ((gs && gs[i]) || 1) * beat, f = 440*Math.pow(2,(m-69)/12);
+      [['triangle',1,1],['sine',2,.3]].forEach(function(p){
+        var o = ac.createOscillator(), g = ac.createGain(); o.type = p[0]; o.frequency.value = f*p[1];
+        g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.32*p[2],t+.02); g.gain.exponentialRampToValueAtTime(.001,t+dur*1.5);
+        o.connect(g); g.connect(master || ac.destination); o.start(t); o.stop(t+dur*1.6);
+      });
+      t += dur;
+    });
+  }
+  $('harm').addEventListener('click',function(e){
+    var t = e.target, el;
+    if((el = t.closest('[data-asub]'))){ ACOM.sub = el.getAttribute('data-asub'); renderHarm(); return; }
+    if((el = t.closest('[data-acat]'))){ ACOM.cat = el.getAttribute('data-acat'); renderHarm(); return; }
+    if((el = t.closest('[data-apsub]'))){ APR.sub = el.getAttribute('data-apsub'); renderHarm(); return; }
+    if((el = t.closest('[data-fill]'))){ var f = FILLS[parseInt(el.getAttribute('data-fill'),10)]; if(f) playLine(f.m,f.g); return; }
+    if((el = t.closest('[data-mis]'))){ var n = parseInt(el.getAttribute('data-mis'),10), d = misDone(), k = d.indexOf(n); if(k>=0) d.splice(k,1); else d.push(n); misSave(d); renderHarm(); return; }
+  });
+  $('harm').addEventListener('input',function(e){
+    if(e.target.id!=='gloQ') return; var q = norm(e.target.value);
+    Array.prototype.forEach.call(document.querySelectorAll('#gloList .glo'),function(c){ c.style.display = (!q || norm(c.getAttribute('data-t')).indexOf(q)>=0 || norm(c.innerText).indexOf(q)>=0) ? '' : 'none'; });
+  });
 
   // ---------- Inicio ----------
   loadAll().then(function(){
