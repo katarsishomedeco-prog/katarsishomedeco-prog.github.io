@@ -1,7 +1,7 @@
-const V = 'partituras-v15';
+const V = 'partituras-v16';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(V).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(V).then(c => c.addAll(FILES.map(u => new Request(u, {cache: 'reload'})))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim()));
@@ -17,7 +17,7 @@ self.addEventListener('fetch', e => {
       let done = false;
       const fromCache = () => caches.match('./index.html').then(r => { if (r && !done) { done = true; resolve(r); } });
       const timer = setTimeout(fromCache, 2500);
-      fetch(e.request).then(r => {
+      fetch(e.request, {cache: 'reload'}).then(r => {
         clearTimeout(timer);
         if (r && r.ok) { const cp = r.clone(); caches.open(V).then(c => c.put('./index.html', cp)); }
         if (!done) { done = true; resolve(r); }
