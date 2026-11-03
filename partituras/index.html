@@ -110,6 +110,8 @@ button,label{touch-action:manipulation}
 #acts #load{background:var(--accent);color:#111;font-weight:700;text-align:center;cursor:pointer}
 #newSet{grid-column:1/3;background:transparent;color:var(--muted);border:1px dashed #3a3a42;border-radius:10px;padding:8px;font-size:12px;cursor:pointer}
 button[hidden]{display:none}
+#cloudBtn{grid-column:1/3;background:#26262b;color:var(--fg);border:1px solid #3a3a42;border-radius:10px;padding:9px;font-size:13px;font-weight:600;cursor:pointer}
+#cloudBtn:disabled{opacity:.6}
 #shareBtn,#recvBtn{grid-column:1/3;background:#26262b;color:var(--fg);border:1px solid #3a3a42;border-radius:10px;padding:9px;font-size:13px;font-weight:600;cursor:pointer}
 #shareBtn:hover,#recvBtn:hover{background:#3a3a42}
 .song.hi{background:#222226;border-color:#5a5a66}
@@ -260,6 +262,7 @@ body.stage #fiBtn{display:none!important}
     <div id="acts">
       <label id="load" for="file">+ Importar PDF o ZIP</label>
       <input id="file" type="file" accept="application/pdf,.pdf,application/zip,.zip" multiple hidden>
+      <button id="cloudBtn" tabindex="-1">☁️ Bajar canciones de la nube</button>
       <button id="pasteBtn" tabindex="-1">+ Pegar texto</button>
       <button id="shareBtn" tabindex="-1" hidden>📲 Enviar repertorio al celu</button>
       <button id="recvBtn" tabindex="-1">📥 Recibir repertorio</button>
@@ -1139,6 +1142,24 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     if(!songs.length && library.length){ view='lib'; renderList(); }
     toast(added+' canciones agregadas'+(repaired?', '+repaired+' reparadas':'')+(skipped?' ('+skipped+' ya estaban)':''));
   }
+  $('cloudBtn').addEventListener('click',async function(){
+    var btn = this; if(btn.disabled) return;
+    if(!navigator.onLine){ toast('Necesito internet para bajar las canciones'); return; }
+    btn.disabled = true; var txt = btn.textContent;
+    try{
+      var files = [];
+      for(var n=1;n<=5;n++){
+        btn.textContent = '☁️ Bajando paquete '+n+' de 5…';
+        var r = await fetch('biblioteca/biblioteca-'+n+'.zip?'+Date.now());
+        if(!r.ok) throw new Error('http '+r.status);
+        files.push(new File([await r.blob()], 'biblioteca-'+n+'.zip'));
+      }
+      btn.textContent = '☁️ Guardando canciones…';
+      await importFiles(files);
+    }catch(err){ toast('No pude bajar las canciones. Probá de nuevo con buena señal.'); }
+    btn.textContent = txt; btn.disabled = false;
+    if(document.activeElement) document.activeElement.blur();
+  });
   $('file').addEventListener('change',function(e){
     var files = Array.prototype.slice.call(e.target.files); e.target.value='';
     if(files.length) importFiles(files);
